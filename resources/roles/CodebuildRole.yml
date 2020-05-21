@@ -1,0 +1,60 @@
+Resources:
+  CodebuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ${self:custom.codebuild.roleName}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+
+  CodebuildRolePolicy:
+    DependsOn:
+      - CodebuildRole
+      - KMSKey
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles:
+        - !Ref CodebuildRole
+      PolicyName: ${self:custom.codebuild.policyName}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - codepipeline:PutJobSuccessResult
+              - codepipeline:PutJobFailureResult
+            Resource:
+              - '*'
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Resource:
+              - !GetAtt [PipelineRole, Arn]
+              - ${self:custom.qa.roleArn}
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetBucketPolicy
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - arn:aws:s3:::${self:custom.bucket.artifacts}
+              - arn:aws:s3:::${self:custom.bucket.artifacts}/*
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
+          - Effect: Allow
+            Action:
+              - kms:*
+            Resource:
+              - !GetAtt [KMSKey, Arn]

@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  ProductionAccountId:
+    Type: String
+    Description: AWS Account Id of the administrator account (the account in which StackSets will be created).
+    MaxLength: 12
+    MinLength: 12
+  ArtifactBucketName:
+    Type: String
+    Description: The Artifact Bucket Name
+  RoleName:
+    Type: String
+    Description: The name for the Cross Account Role
+  CloudformationRoleName:
+    Type: String
+    Description: The name for the Cloudformation Role
+
+Resources:
+  QACloudFormationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Ref: CloudformationRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action: 
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+  QACloudFormationRolePolicy:
+    DependsOn:
+      - QACloudFormationRole
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: 
+        Fn::Sub: ${CloudformationRoleName}-policy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetBucketPolicy
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - Fn::Sub: arn:aws:s3:::${ArtifactBucketName}
+              - Fn::Sub: arn:aws:s3:::${ArtifactBucketName}/*
+      Roles:
+        - Ref: QACloudFormationRole
+
+  QARole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Ref: RoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - Ref: ProductionAccountId
+            Action:
+              - sts:AssumeRole
+      Path: /
+
+  QARolePolicy:
+    DependsOn:
+      - QARole
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${RoleName}-policy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - cloudformation:*
+              - s3:*
+              - kms:*
+              - rds:DescribeDBInstances
+              - secretsmanager:GetSecretValue
+              - lambda:GetLayerVersion
+              - lambda:ListLayers
+              - lambda:PublishLayerVersion
+              - lambda:UpdateFunctionConfiguration
+              - iam:PassRole
+              - cognito-idp:ListUserPools
+            Resource: '*'
+      Roles:
+        - Ref: QARole

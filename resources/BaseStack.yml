@@ -1,0 +1,48 @@
+Parameters:
+  DeploymentBucketName:
+    Description: The name of the description bucket
+    Type: String
+
+  RoleName:
+    Description: The Name from the Role that will manage the cloudformation stack
+    Type: String
+
+Resources:
+  DeploymentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Ref: DeploymentBucketName
+
+  DeploymentBucketPolicy:
+    DependsOn:
+      - DeploymentBucket
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: DeploymentBucket
+      PolicyDocument:
+        Statement:
+          - Sid: Access to Cloudformation Role
+            Effect: Allow
+            Principal:
+              AWS:
+                # IMPORTANT TO KEEP THIS FORMAT SO THE INLINE YML LOADER CAN LOAD THE FILE
+                - Fn::Join:
+                  - ''
+                  - - 'arn:aws:iam::'
+                    - Ref: AWS::AccountId
+                    - ':role/'
+                    - Ref: RoleName
+            Action:
+              - s3:*
+            Resource:
+              - Fn::GetAtt:
+                  - DeploymentBucket
+                  - Arn
+              - Fn::Join:
+                  - ''
+                  - - Fn::GetAtt:
+                      - DeploymentBucket
+                      - Arn
+                    - '/*'

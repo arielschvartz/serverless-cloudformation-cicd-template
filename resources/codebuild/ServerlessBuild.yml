@@ -1,0 +1,41 @@
+Resources:
+  ServerlessBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: ${self:custom.serverless.projectName}
+      Description: This build is part of the ${self:custom.pipeline.name}. It builds QA and Production packages from source stored in the artifacts S3, and yields them as artifacts for the pipeline's next steps.
+      Artifacts:
+        Type: CODEPIPELINE
+      EncryptionKey: !GetAtt [KMSKey, Arn]
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        EnvironmentVariables:
+          - Name: QA_TARGET_DIR
+            Type: PLAINTEXT
+            Value: ${self:custom.build.targetDirQA}
+          - Name: PROD_TARGET_DIR
+            Type: PLAINTEXT
+            Value: ${self:custom.build.targetDirProduction}
+          - Name: SERVERLESS_VERSION
+            Type: PLAINTEXT
+            Value: '1.59.0'
+          - Name: QA_ACCOUNT
+            Type: PLAINTEXT
+            Value: ${self:custom.qa.accountId}
+          - Name: QA_ROLE_NAME
+            Type: PLAINTEXT
+            Value: ${self:custom.qa.roleName}
+          - Name: SLS_DEBUG
+            Type: PLAINTEXT
+            Value: '*'
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: |
+          ${fileToString:resources/buildspecs/serverlessBuild.yml}
+      ServiceRole: !GetAtt [PipelineRole, Arn]
+      TimeoutInMinutes: 30

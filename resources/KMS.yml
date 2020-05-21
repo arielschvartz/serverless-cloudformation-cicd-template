@@ -1,0 +1,39 @@
+Resources:
+  KMSKey:
+    DependsOn:
+      - PipelineRole
+      - CodebuildRole
+    Type: AWS::KMS::Key
+    Properties:
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Id: pipeline-kms-key
+        Statement:
+          - Sid: Allows admin of the key
+            Effect: Allow
+            Principal:
+              AWS: !Ref AWS::AccountId
+            Action:
+              - "kms:*"
+            Resource: "*"
+          - Sid: Allow use of the key from the other accounts
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt [CodebuildRole, Arn]
+                - !GetAtt [PipelineRole, Arn]
+                - ${self:custom.qa.roleArn}
+                - ${self:custom.qa.cloudformation.roleArn}
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: "*"
+  KMSAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub alias/codepipeline-crossaccounts
+      TargetKeyId: !Ref KMSKey

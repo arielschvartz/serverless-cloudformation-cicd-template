@@ -1,0 +1,32 @@
+Resources:
+  DeployFunctionsProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: ${self:custom.deployFunctions.projectName}
+      Description: Fetch the deployment folder that Serverless has defined when creating the stacks templates, and upload the Lambdas and individual stack templates to the correct paths inside the ServerlessDeploymentBucket, whose name is available in serverless-state.json
+      Artifacts:
+        Type: CODEPIPELINE
+      EncryptionKey: !GetAtt [KMSKey, Arn]
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        EnvironmentVariables:
+          - Name: CLOUDFORMATION_ROLE_NAME
+            Type: PLAINTEXT
+            Value: ${self:custom.cloudformation.roleName}
+          - Name: STACK_NAME
+            Type: PLAINTEXT
+            Value: ${self:custom.cloudformation.stackName}
+          - Name: TEMPLATE
+            Type: PLAINTEXT
+            Value: ${fileToString:resources/BaseStack.yml}
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+      Source:
+        BuildSpec: |
+          ${fileToString:resources/buildspecs/deployFunctions.yml}
+        Type: CODEPIPELINE
+      ServiceRole: !GetAtt [PipelineRole, Arn]
+      TimeoutInMinutes: 30

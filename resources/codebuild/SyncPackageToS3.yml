@@ -1,0 +1,22 @@
+Resources:
+  SyncPackageToS3Project:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: ${self:custom.syncS3.projectName}
+      Description: Get the generated build artifact and sync its contents to the S3 bucket.
+      Artifacts:
+        Type: CODEPIPELINE
+      EncryptionKey: !GetAtt [KMSKey, Arn]
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:2.0
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+      Source:
+        BuildSpec: |
+          ${fileToString:resources/buildspecs/syncPackageToS3.yml}
+        Type: CODEPIPELINE
+      ServiceRole: !GetAtt [PipelineRole, Arn]
+      TimeoutInMinutes: 30

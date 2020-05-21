@@ -1,0 +1,89 @@
+Resources:
+  PipelineArtifactsS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: ${self:custom.bucket.artifacts}
+      VersioningConfiguration:
+        Status: Enabled
+
+  PipelineArtifactsS3BucketPolicy:
+    DependsOn:
+      - CodebuildRole
+      - PipelineRole
+      - PipelineArtifactsS3Bucket
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PipelineArtifactsS3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:*
+            Principal:
+              AWS:
+                - !GetAtt [CodebuildRole, Arn]
+                - !GetAtt [PipelineRole, Arn]
+                - ${self:custom.qa.roleArn}
+                - ${self:custom.qa.cloudformation.roleArn}
+            Resource:
+              - arn:aws:s3:::${self:custom.bucket.artifacts}
+              - arn:aws:s3:::${self:custom.bucket.artifacts}/*
+
+  PipelineSourceS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: ${self:custom.bucket.source}
+      VersioningConfiguration:
+        Status: Enabled
+
+  PipelineSourceS3BucketPolicy:
+    DependsOn:
+      - CodebuildRole
+      - PipelineRole
+      - PipelineSourceS3Bucket
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PipelineSourceS3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:*
+            Principal:
+              AWS:
+                - !GetAtt [CodebuildRole, Arn]
+                - !GetAtt [PipelineRole, Arn]
+            Resource:
+              - arn:aws:s3:::${self:custom.bucket.source}
+              - arn:aws:s3:::${self:custom.bucket.source}/*
+
+  CloudFormationTemplatesBackupBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: ${self:custom.bucket.cloudformationTemplatesBackup}
+      VersioningConfiguration:
+        Status: Enabled
+
+  CloudFormationTemplatesBackupBucketPolicy:
+    DependsOn:
+      - CodebuildRole
+      - PipelineRole
+      - CloudFormationTemplatesBackupBucket
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CloudFormationTemplatesBackupBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:*
+            Principal:
+              AWS:
+                - !GetAtt [CodebuildRole, Arn]
+                - !GetAtt [PipelineRole, Arn]
+            Resource:
+              - arn:aws:s3:::${self:custom.bucket.cloudformationTemplatesBackup}
+              - arn:aws:s3:::${self:custom.bucket.cloudformationTemplatesBackup}/*

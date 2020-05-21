@@ -1,0 +1,35 @@
+{
+  "name": "serverless-cf-cicd",
+  "version": "1.0.0",
+  "description": "Plugin for creating a CodePipeline on AWS that deploys a serverless project configurable for specific commands in between like rolling back cloudformation, migration databases, syncinc s3, etc...",
+  "main": "index.js",
+  "homepage": "https://github.com/arielschvartz/serverless-cloudformation-cicd-template#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arielschvartz/serverless-cloudformation-cicd-template.git"
+  },
+  "author": "Ariel Schvartz",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.9.6",
+    "@babel/preset-env": "^7.9.6",
+    "babel-loader": "^8.1.0",
+    "bluebird": "^3.7.2",
+    "camelcase": "^6.0.0",
+    "js-yaml": "^3.13.1",
+    "serverless": "1.59.0",
+    "serverless-create-custom-deployment-bucket": "^1.0.0",
+    "serverless-iam-roles-per-function": "^2.0.2",
+    "serverless-pseudo-parameters": "^2.5.0",
+    "serverless-webpack": "^5.3.1",
+    "shelljs": "^0.8.4",
+    "snake-case": "^3.0.3",
+    "webpack": "^4.43.0",
+    "webpack-node-externals": "^1.7.2"
+  },
+  "dependencies": {
+    "axios": "^0.19.2",
+    "query-string": "^6.12.1",
+    "uuid": "^8.0.0"
+  }
+}

@@ -1,0 +1,32 @@
+Resources:
+  MigrateDatabase:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: ${self:custom.migrate.projectName}
+      Description: Run the migration command
+      Artifacts:
+        Type: CODEPIPELINE
+      EncryptionKey: !GetAtt [KMSKey, Arn]
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        EnvironmentVariables:
+          - Name: STACK_NAME
+            Type: PLAINTEXT
+            Value: ${self:custom.cloudformation.stackName}
+          - Name: QA_ACCOUNT
+            Type: PLAINTEXT
+            Value: ${self:custom.qa.accountId}
+          - Name: QA_ROLE_NAME
+            Type: PLAINTEXT
+            Value: ${self:custom.qa.roleName}
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+      Source:
+        BuildSpec: |
+          ${fileToString:resources/buildspecs/migrateDatabase.yml}
+        Type: CODEPIPELINE
+      ServiceRole: !GetAtt [PipelineRole, Arn]
+      TimeoutInMinutes: 30

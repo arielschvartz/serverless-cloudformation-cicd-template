@@ -1,0 +1,37 @@
+Conditions:
+  IsRDSDatabaseEnabled:
+    Fn::Equals:
+      - ${self:custom.rdsDatabase.enabled}
+      - true
+  IsServerlessEnabled:
+    Fn::Equals:
+      - ${self:custom.serverless.enabled}
+      - true
+  IsWebpackEnabled:
+    Fn::Equals:
+      - ${self:custom.webpackBuild.enabled}
+      - true
+  IsDatabaseMigrationEnabled:
+    Fn::Equals:
+      - ${self:custom.migrate.enabled}
+      - true
+  IsValidationEnabled:
+    Fn::Equals:
+      - ${self:custom.validate.enabled}
+      - true
+  IsPullRequestEnabled:
+    Fn::Equals:
+      - ${self:custom.pullRequest.enabled}
+      - true
+  IsS3SyncEnabled:
+    Fn::Equals:
+      - ${self:custom.syncS3.enabled}
+      - true
+  IsS3SyncFromWebpack:
+    Fn::Equals:
+      - ${self:custom.syncS3.artifact}
+      - 'webpack'
+  IsS3SyncFromServerless:
+    Fn::Equals:
+      - ${self:custom.syncS3.artifact}
+      - 'serverless'

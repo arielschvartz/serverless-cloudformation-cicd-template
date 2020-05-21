@@ -1,0 +1,10 @@
+Resources:
+  NotifyForValidationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: ${self:custom.sns.notifyForValidationTopicName}
+
+  OpenPullRequestTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: ${self:custom.sns.openPullRequestTopicName}

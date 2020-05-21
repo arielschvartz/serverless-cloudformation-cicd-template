@@ -1,0 +1,38 @@
+Resources:
+  CloudFormationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ${self:custom.cloudformation.roleName}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+  CloudFormationRolePolicy:
+    DependsOn:
+      - CloudFormationRole
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ${self:custom.cloudformation.policyName}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetBucketPolicy
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - arn:aws:s3:::${self:custom.bucket.artifacts}
+              - arn:aws:s3:::${self:custom.bucket.artifacts}/*
+      Roles:
+        - !Ref CloudFormationRole

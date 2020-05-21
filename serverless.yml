@@ -1,0 +1,306 @@
+service: ${parent:service-name}-cf-cicd
+
+plugins:
+  - custom-resolvers
+  - serverless-create-custom-deployment-bucket
+  - serverless-pseudo-parameters
+  - serverless-webpack
+  - serverless-iam-roles-per-function
+
+package:
+  exclude:
+    - node_modules/**
+    - .serverless/**
+    - .git/**
+
+custom:
+  # stage: ${opt:stage, self:provider.stage}
+  stage: production
+  region: ${opt:region, 'us-east-1'}
+  profile: ${opt:profile}
+
+  webpack:
+    webpackConfig: 'webpack.config.js' # Name of webpack configuration file
+    includeModules: false # Node modules configuration for packaging
+    packager: 'yarn' # Packager that will be used to package your external modules
+
+  bitbucket:
+    connection: ${parent:service-name}-bitbucket-connection
+    sourceBranch: ${opt:qa-branch-name, 'qa'}
+    targetBranch: ${opt:production-branch-name, 'master'}
+    repository: ${opt:bitbucket-repository}
+    workspace: ${opt:bitbucket-workspace}
+    clientId: ${opt:bitbucket-client-id}
+    secret: ${opt:bitbucket-secret}
+
+  production:
+    accountId: ${opt:production-account-id}
+
+  qa:
+    stageName: ${opt:qa-stage-name, 'qa'}
+    stackName: ${parent:service-name}-cicd-roles
+    accountId: ${opt:qa-account-id}
+    roleName: ${opt:qa-role-name, '${parent:service-name}-cicd-role'}
+    roleArn: ${opt:qa-role-arn, 'arn:aws:iam::${self:custom.qa.accountId}:role/${self:custom.qa.roleName}'}
+    cloudformation:
+      roleArn: ${opt:qa-cloudformation-role-arn, 'arn:aws:iam::${self:custom.qa.accountId}:role/${self:custom.cloudformation.roleName}'}
+
+  pipeline:
+    name: ${opt:pipeline-name, '${parent:service-name}-cicd'}
+    roleName: ${opt:pipeline-role-name, '${self:custom.pipeline.name}-cicd-codepipeline-role'}
+    policyName: ${opt:pipeline-policy-name, '${self:custom.pipeline.name}-codepipeline-policy'}
+
+  source:
+    objectKey: 'pipelineExecution.json'
+
+  codebuild:
+    roleName: ${opt:codebuild-role-name, '${parent:service-name}-cicd-codebuild-role'}
+    policyName: ${opt:codebuild-policy-name, '${parent:service-name}-codebuild-policy'}
+
+  cloudformation:
+    enabled: ${strToBool(${opt:cloudformation-enabled, 'true'})}
+    stackName: ${opt:cloudformation-stack-name}
+    roleName: ${opt:cloudformation-role-name, '${parent:service-name}-cicd-cloudformation-role'}
+    roleArn: ${arn:aws:iam::${self:custom.production.accountId}:role/${self:custom.cloudformation.roleName}
+    policyName: ${opt:cloudformation-policy-name, '${parent:service-name}-cloudformation-policy'}
+
+  bucket:
+    artifacts: ${opt:artifacts-bucket-name, '${parent:service-name}-cicd-artifacts'}
+    source: ${opt:source-bucket-name, '${parent:service-name}-cicd-source'}
+    cloudformationTemplatesBackup: ${opt:cloudformation-templates-backup-bucket-name, '${parent:service-name}-cicd-cloudformation-templates-backup'}
+
+  build:
+    targetDirQA: target/qa
+    targetDirProduction: target/production
+
+  serverless:
+    enabled: ${strToBool(${opt:serverless-enabled, 'true'})}
+    projectName: ${parent:service-name}-codebuild-serverless-build-project
+    artifactNameQA: ${parent:service-name}-serverless-artifact-qa
+    artifactNameProduction: ${parent:service-name}-serverless-artifact-production
+    packageQA: ${opt:serverless-build-package-qa-command, 'serverless package --stage ${self:custom.qa.stageName} -v -r ${self:custom.region}'}
+    packageProduction: ${opt:serverless-build-package-production-command, 'serverless package --stage production -v -r ${self:custom.region}'}
+    packageOutputFolder: ${opt:serverless-build-package-output-folder, '.serverless'}
+    prebuild: ${opt:serverless-build-prebuild-command, "echo 'No prebuild'"}
+
+  webpackBuild:
+    enabled: ${strToBool(${opt:webpack-enabled, 'false'})}
+    projectName: ${parent:service-name}-codebuild-webpack-build-project
+    artifactNameQA: ${parent:service-name}-webpack-artifact-qa
+    artifactNameProduction: ${parent:service-name}-webpack-artifact-production
+    packageQA: ${opt:webpack-build-package-qa-command, 'npm run build:qa'}
+    packageProduction: ${opt:webpack-build-package-production-command, 'npm run build:production'}
+    packageOutputFolder: ${opt:webpack-build-package-output-folder, 'dist'}
+    prebuild: ${opt:webpack-build-prebuild-command, "echo 'No prebuild'"}
+
+  syncS3:
+    enabled: ${strToBool(${opt:sync-s3-enabled, 'false'})}
+    projectName: ${parent:service-name}-codebuild-sync-s3-project
+    artifact: ${opt:sync-s3-build-method, 'webpack'}
+    rootFolder: ${opt:sync-s3-root-folder, './'}
+    gzip: ${strToBool(${opt:sync-s3-encode-gzip, 'true'})}
+    bucket: ${opt:sync-s3-bucket-name}
+
+  deployFunctions:
+    projectName: ${parent:service-name}-codebuild-deploy-functions-project
+
+  migrate:
+    enabled: ${strToBool(${opt:migrate-database-enabled, 'true'})}
+    projectName: ${parent:service-name}-codebuild-migrate-project
+    install: ${opt:migrate-install-extra, "echo 'install'"}
+    command: ${opt:migrate-database-command}
+
+  rdsDatabase:
+    enabled: ${strToBool(${opt:rds-database-enabled, 'true'})}
+
+  discord:
+    webhookURL: ${strToBool(${opt:discord-webhook, 'false'})}
+
+  slack:
+    slackToken: ${strToBool(${opt:slack-token, 'false'})}
+
+  validate:
+    enabled: ${strToBool(${opt:validate-enabled, 'true'})}
+
+  pullRequest:
+    enabled: ${strToBool(${opt:pull-request-enabled, 'true'})}
+
+  sns:
+    notifyForValidationTopicName: ${opt:notify-topic-name, '${parent:service-name}-notify-for-validation'}
+    openPullRequestTopicName: ${opt:pull-request-topic-name, '${parent:service-name}-open-pull-request'}
+
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: ${self:custom.stage}
+  region: ${self:custom.region}
+  profile: ${self:custom.profile}
+  deploymentBucket:
+    name: ${parent:service-name}-cicd-deployment
+
+pipelineFailedEvents: &pipelineFailedEvents
+  events:
+    - cloudwatchEvent:
+        event:
+          source:
+            - aws.codepipeline
+          detail-type:
+            - CodePipeline Pipeline Execution State Change
+          resources:
+            - Fn::Join:
+              - ':'
+              - - arn:aws:codepipeline
+                - !Ref AWS::Region
+                - !Ref AWS::AccountId
+                - !Ref Pipeline
+          detail:
+            state:
+              - FAILED
+              - CANCELED
+
+functions:
+  NotifyForValidation:
+    handler: src/functions.notifyForValidation
+    # events:
+    #   - sns:
+    #       arn: !Ref NotifyForValidationTopic
+    #       topicName: ${self:custom.sns.notifyForValidationTopicName}
+    dependsOn:
+      - NotifyForValidationTopic
+
+  OpenPullRequest:
+    handler: src/functions.openPullRequest
+    # events:
+    #   - sns:
+    #       arn: !Ref OpenPullRequestTopic
+    #     topicName: ${self:custom.sns.openPullRequestTopicName}
+    dependsOn:
+      - OpenPullRequestTopic
+
+  NotifySuccess:
+    handler: src/functions.notifySuccess
+
+  PRApproved:
+    handler: src/bitbucketWebhooks.pullRequestApproved
+    timeout: 30
+    environment:
+      pipelineName: ${self:custom.pipeline.name}
+      sourceBucketName: !Ref PipelineSourceS3Bucket
+      destinationBranchName: ${self:custom.bitbucket.targetBranch}
+      sourceKey: ${self:custom.source.objectKey}
+    iamRoleStatementsName: ${parent:service-name}-pr-approved-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+        Resource:
+          - arn:aws:s3:::${self:custom.bucket.source}/*
+      - Effect: Allow
+        Action:
+          - codepipeline:StartPipelineExecution
+        Resource:
+          Fn::Join:
+            - ''
+            - - 'arn:aws:codepipeline:us-east-1:'
+              - !Ref AWS::AccountId
+              - ':'
+              - !Ref Pipeline
+    events:
+      - http:
+          path: pull-request-approved
+          method: post
+    layers:
+      - arn:aws:lambda:#{AWS::Region}:553035198032:layer:git-lambda2:6
+
+  OpenNewBranch:
+    handler: src/branching.openNewBranch
+    timeout: 300
+    environment:
+      bitbucketWorkspace: ${opt:bitbucket-workspace}
+      bitbucketRepository: ${opt:bitbucket-repository}
+      bitbucketClientId: ${opt:bitbucket-client-id}
+      bitbucketSecret: ${opt:bitbucket-secret}
+    iamRoleStatementsName: ${parent:service-name}-open-new-branch-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - codepipeline:PutJobSuccessResult
+          - codepipeline:PutJobFailureResult
+        # CANNOT SET THE CUSTOM RESOURCE OR THERE WILL BE A CIRCULAR DEPENDENCY ON CLOUDFORMATION
+        Resource: '*'
+
+  SaveCFTemplate:
+    handler: src/functions.saveCFTemplate
+    timeout: 30
+    environment:
+      bucketName: ${self:custom.bucket.cloudformationTemplatesBackup}
+    iamRoleStatementsName: ${parent:service-name}-save-cf-template-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - codepipeline:PutJobSuccessResult
+          - codepipeline:PutJobFailureResult
+        # CANNOT SET THE CUSTOM RESOURCE OR THERE WILL BE A CIRCULAR DEPENDENCY ON CLOUDFORMATION
+        Resource: '*'
+
+  PRMerged:
+    handler: src/bitbucketWebhooks.pullRequestMerged
+    environment:
+      discordWebhookUrl: ${self:custom.discord.webhookURL}
+      pipelineName: ${self:custom.pipeline.name}
+    events:
+      - http:
+          path: pull-request-merged
+          method: post
+
+  PRDeclined:
+    handler: src/bitbucketWebhooks.pullRequestDeclined
+    environment:
+      discordWebhookUrl: ${self:custom.discord.webhookURL}
+      pipelineName: ${self:custom.pipeline.name}
+    events:
+      - http:
+          path: pull-request-declined
+          method: post
+
+  RollbackCloudformation:
+    handler: src/rollback.cloudformation
+    <<: *pipelineFailedEvents
+
+  # RollbackDatabase:
+  #   handler: src/rollback.database
+  #   <<: *pipelineFailedEvents
+
+  NotifyFailed:
+    handler: src/rollback.notifyFailed
+    <<: *pipelineFailedEvents
+
+
+resources:
+  # CONDITIONS
+  - ${file(resources/Conditions.yml)}
+
+  # KMS
+  - ${file(resources/KMS.yml)}
+
+  # SNS TOPICS
+  - ${file(resources/SNSTopics.yml)}
+
+  # BUCKETS
+  - ${file(resources/Buckets.yml)}
+
+  # ROLES
+  - ${file(resources/roles/CloudformationRole.yml)}
+  - ${file(resources/roles/CodebuildRole.yml)}
+  - ${file(resources/roles/PipelineRole.yml)}
+
+  # CODEBUILD PROJECTS
+  - ${file(resources/codebuild/ServerlessBuild.yml)}
+  - ${file(resources/codebuild/WebpackBuild.yml)}
+  - ${file(resources/codebuild/DeployFunctions.yml)}
+  - ${file(resources/codebuild/MigrateDatabase.yml)}
+  - ${file(resources/codebuild/SyncPackageToS3.yml)}
+
+  # PIPELINE
+  - ${file(resources/Pipeline.yml)}
