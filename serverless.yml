@@ -109,7 +109,7 @@ custom:
     enabled: ${strToBool(${opt:migrate-database-enabled, 'true'})}
     migrationsFolder: ${opt:migrations-folder, 'migrations'}
     projectName: ${parent:service-name}-codebuild-migrate-project
-    install: ${opt:migrate-install-extra, "echo 'install'"}
+    install: ${opt:pre-migrate-command, "echo 'install'"}
     command: ${opt:migrate-database-command}
     isRDS: ${strToBool(${opt:rds-database, 'true'})}
 
@@ -316,7 +316,7 @@ functions:
         Action: sts:AssumeRole
         Resource: ${self:custom.qa.roleArn}
 
-  CreateBaseTemplate:
+  CreateStackFromTemplate:
     handler: src/deploy.createBaseTemplate
     environment:
       TEMPLATE: ${fileToString:resources/BaseStack.yml}
@@ -381,7 +381,7 @@ functions:
     dependsOn:
       - PackageBucket
 
-  HasMigrationsChecksumChanged:
+  CheckIfMigrationsChanged:
     handler: src/deploy/database.checkMigrationsChecksumChanged
     timeout: 30
     environment:
@@ -458,8 +458,8 @@ functions:
               - snapshot
               - '*'
 
-  RollbackDatabase:
-    handler: src/rollback/database.rollbackDatabase
+  CreateInstanceFromSnapshot:
+    handler: src/rollback/database.createInstanceFromSnapshot
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
     iamRoleStatementsName: ${parent:service-name}-rollback-snapshot-role

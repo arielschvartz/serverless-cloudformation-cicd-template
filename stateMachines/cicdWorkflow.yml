@@ -89,18 +89,18 @@ definition:
       Choices:
         - Variable: $.databaseOptions.migrateEnabled
           BooleanEquals: true
-          Next: HasMigrationsChecksumChanged
+          Next: CheckIfMigrationsChanged
       Default: DeployQA
 
-    # HasMigrationsChecksumChanged:
+    # CheckIfMigrationsChanged:
     #   Type: Pass
     #   Result: true
     #   ResultPath: $.databaseOptions.migrationsChanged
     #   Next: DeployQA
 
-    HasMigrationsChecksumChanged:
+    CheckIfMigrationsChanged:
       Type: Task
-      Resource: !GetAtt [HasMigrationsChecksumChangedLambdaFunction, Arn]
+      Resource: !GetAtt [CheckIfMigrationsChangedLambdaFunction, Arn]
       Next: DeployQA
       ResultPath: $.databaseOptions.migrationsChanged
       Retry:
@@ -229,7 +229,7 @@ definition:
 
     RollbackProductionCloudformation:
        Type: Pass
-       Next: NotifyError
+       Next: RollbackQADatabase
 
     SaveBackup:
       Type: Task
@@ -268,22 +268,6 @@ definition:
             - States.ALL
           ResultPath: $.errorInfo
           Next: NotifyError
-
-    # RollbackProduction:
-    #   Type: Task
-    #   Resource: arn:aws:states:::states:startExecution.waitForTaskToken
-    #   # LIMIT TO 1 HOUR
-    #   HeartbeatSeconds: 3600
-    #   Parameters:
-    #     StateMachineArn: !GetAtt [RollbackDatabaseStateMachine, Arn]
-    #     Input:
-    #       environment: production
-    #   Catch:
-    #     - ErrorEquals:
-    #         - States.ALL
-    #       ResultPath: $.errorInfo
-    #       Next: NotifyError
-    #   Next: RollbackQA
 
     NotifyError:
       Type: Task

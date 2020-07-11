@@ -16,161 +16,59 @@ const {
   downloadSourceCode,
 } = require('./lib/bitbucket');
 
-const parameters = {
-  'production-branch-name': {
-    required: false,
-  },
-  'bitbucket-repository': {
-    required: true,
-  },
-  'bitbucket-workspace': {
-    required: true,
-  },
-  'bitbucket-client-id': {
-    required: true,
-  },
-  'bitbucket-secret': {
-    required: true,
-  },
-  'production-account-id': {
-    required: true,
-  },
-  'qa-stage-name': {
-    required: false,
-  },
-  'qa-account-id': {
-    required: true,
-  },
-  'qa-role-name': {
-    required: false,
-  },
-  'qa-role-arn': {
-    required: false,
-  },
-  'qa-cloudformation-role-arn': {
-    required: false,
-  },
-  'state-machine-name': {
-    required: false,
-  },
-  'state-machine-role-name': {
-    required: false,
-  },
-  'state-machine-policy-name': {
-    required: false,
-  },
-  'codebuild-role-name': {
-    required: false,
-  },
-  'codebuild-policy-name': {
-    required: false,
-  },
-  // 'cloudformation-enabled': {
-  //   required: false,
-  // },
-  'cloudformation-role-name': {
-    required: false,
-  },
-  'cloudformation-policy-name': {
-    required: false,
-  },
-  'package-bucket-name': {
-    required: false,
-  },
-  'source-bucket-name': {
-    required: false,
-  },
-  'cloudformation-templates-backup-bucket-name': {
-    required: false,
-  },
-  'serverless-enabled': {
-    required: false,
-  },
-  'serverless-build-package-qa-command': {
-    required: false,
-  },
-  'serverless-build-package-production-command': {
-    required: false,
-  },
-  'serverless-build-package-output-folder': {
-    required: false,
-  },
-  'serverless-build-prebuild-command': {
-    required: false,
-  },
-  'webpack-enabled': {
-    required: false,
-  },
-  'webpack-build-package-qa-command': {
-    required: false,
-  },
-  'webpack-build-package-production-command': {
-    required: false,
-  },
-  'webpack-build-package-output-folder': {
-    required: false,
-  },
-  'webpack-build-prebuild-command': {
-    required: false,
-  },
-  'sync-s3-enabled': {
-    required: false,
-  },
-  'sync-s3-root-folder': {
-    required: false,
-  },
-  'sync-s3-encode-gzip': {
-    required: false,
-  },
-  'sync-s3-bucket-name': {
-    required: false,
-  },
-  'sync-s3-source': {
-    required: false,
-  },
-  'migrate-database-enabled': {
-    required: false,
-  },
-  'migrations-folder': {
-    required: false,
-  },
-  'migrate-install-extra': {
-    required: false,
-  },
-  'migrate-database-command': {
-    required: false,
-  },
-  'rds-database': {
-    required: false,
-  },
-  'rds-domain': {
-    required: false,
-  },
-  'hosted-zone': {
-    required: false,
-  },
-  'hosted-zone-id': {
-    required: false,
-  },
-  'validate-enabled': {
-    required: false,
-  },
-  'discord-webhook': {
-    required: false,
-  },
-  'slack-webhook': {
-    required: false,
-  },
-  'pull-request-enabled': {
-    required: false,
-  },
-  'notify-topic-name': {
-    required: false,
-  },
-  'pull-request-topic-name': {
-    required: false,
-  }
-};
+const parameters = [
+  'production-branch-name',
+  'bitbucket-repository',
+  'bitbucket-workspace',
+  'bitbucket-client-id',
+  'bitbucket-secret',
+  'production-account-id',
+  'qa-stage-name',
+  'qa-account-id',
+  'qa-role-name',
+  'qa-role-arn',
+  'qa-cloudformation-role-arn',
+  'state-machine-name',
+  'state-machine-role-name',
+  'state-machine-policy-name',
+  'codebuild-role-name',
+  'codebuild-policy-name',
+  // 'cloudformation-enabled',
+  'cloudformation-role-name',
+  'cloudformation-policy-name',
+  'package-bucket-name',
+  'source-bucket-name',
+  'cloudformation-templates-backup-bucket-name',
+  'serverless-enabled',
+  'serverless-build-package-qa-command',
+  'serverless-build-package-production-command',
+  'serverless-build-package-output-folder',
+  'serverless-build-prebuild-command',
+  'webpack-enabled',
+  'webpack-build-package-qa-command',
+  'webpack-build-package-production-command',
+  'webpack-build-package-output-folder',
+  'webpack-build-prebuild-command',
+  'sync-s3-enabled',
+  'sync-s3-root-folder',
+  'sync-s3-encode-gzip',
+  'sync-s3-bucket-name',
+  'sync-s3-source',
+  'migrate-database-enabled',
+  'migrations-folder',
+  'pre-migrate-command',
+  'migrate-database-command',
+  'rds-database',
+  'rds-domain',
+  'hosted-zone',
+  'hosted-zone-id',
+  'validate-enabled',
+  'discord-webhook',
+  'slack-webhook',
+  'pull-request-enabled',
+  'notify-topic-name',
+  'pull-request-topic-name',
+];
 
 class ServerlessCloudfrontCICDTemplate {
   constructor(serverless, options) {
@@ -325,7 +223,7 @@ class ServerlessCloudfrontCICDTemplate {
     if (this.serverless.service.custom.cicd == null) {
       throw new Error('You must set the cicd configuration on the serverless.yml');
     }
-    for (const [key, { required }] of Object.entries(parameters)) {
+    for (const key of parameters) {
       const configValue = this.serverless.service.custom.cicd[camelCase(key)];
       if (configValue != null && configValue !== '') {
         if (typeof configValue === 'string' && configValue.includes(' ')) {
@@ -333,8 +231,6 @@ class ServerlessCloudfrontCICDTemplate {
         } else {
           opts.push(`--${key} ${configValue}`);
         }
-      } else if (required) {
-        throw new Error(`The ${camelCase(key)} config parameter is required.`)
       }
     }
 

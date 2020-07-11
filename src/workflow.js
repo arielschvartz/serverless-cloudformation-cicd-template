@@ -6,7 +6,7 @@ import {
 const s3 = new AWS.S3({ apiVersion: '2006-03-01' });
 const stepfunctions = new AWS.StepFunctions({ apiVersion: '2016-11-23' });
 
-const getStackName = async ({ Location: location }) => {
+const getStackInfo = async ({ Location: location }) => {
   console.log("LOCATION", location);
 
   const bucketName = location.split('/')[0].split(':::')[1];
@@ -81,14 +81,14 @@ export const mapPackagingVariables = async (event, context) => {
           break;
         case process.env.serverlessQAStateName:
           result.qa.serverless.state = artifact;
-          Object.assign(result.qa.serverless, await getStackName(artifact));
+          Object.assign(result.qa.serverless, await getStackInfo(artifact));
           break;
         case process.env.serverlessProductionArtifactName:
           result.production.serverless.package = artifact;
           break;
         case process.env.serverlessProductionStateName:
           result.production.serverless.state = artifact;
-          Object.assign(result.production.serverless, await getStackName(artifact));
+          Object.assign(result.production.serverless, await getStackInfo(artifact));
           break;
       }
     }

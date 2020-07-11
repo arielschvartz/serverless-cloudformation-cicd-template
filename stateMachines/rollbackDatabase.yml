@@ -21,11 +21,11 @@ definition:
         - Variable: $.snapshotIdentifier
           BooleanEquals: false
           Next: NotifySuccess
-      Default: RollbackDatabase
+      Default: CreateInstanceFromSnapshot
 
-    RollbackDatabase:
+    CreateInstanceFromSnapshot:
       Type: Task
-      Resource: !GetAtt [RollbackDatabaseLambdaFunction, Arn]
+      Resource: !GetAtt [CreateInstanceFromSnapshotLambdaFunction, Arn]
       ResultPath: null
       Next: WaitSnapshot
       Parameters:

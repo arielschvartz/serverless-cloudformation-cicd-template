@@ -89,3 +89,7 @@ export const notify = async (params) => {
     }
   }
 }
+
+export const isTruthy = (value) => {
+  ['true', 't', true, 1, '1'].indexOf(value) > -1
+}

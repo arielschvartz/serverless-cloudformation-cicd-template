@@ -54,7 +54,7 @@ const getRoute53Instance = async (event) => {
   return new AWS.Route53(opts);
 }
 
-export const rollbackDatabase = async (event, context) => {
+export const createInstanceFromSnapshot = async (event, context) => {
   const {
     Payload: {
       rdsIdentifier,

@@ -42,17 +42,17 @@ Resources:
 
               # DEPLOY
               - !GetAtt [CheckIfCFStackExistsLambdaFunction, Arn]
-              - !GetAtt [CreateBaseTemplateLambdaFunction, Arn]
+              - !GetAtt [CreateStackFromTemplateLambdaFunction, Arn]
               - !GetAtt [IsStackReadyLambdaFunction, Arn]
               - !GetAtt [UpdateCFTemplateLambdaFunction, Arn]
 
               # DATABASE
-              - !GetAtt [HasMigrationsChecksumChangedLambdaFunction, Arn]
+              - !GetAtt [CheckIfMigrationsChangedLambdaFunction, Arn]
               - !GetAtt [TakeRDSSnapshotLambdaFunction, Arn]
               - !GetAtt [IsSnapshotReadyLambdaFunction, Arn]
 
               # ROLLBACK
-              - !GetAtt [RollbackDatabaseLambdaFunction, Arn]
+              - !GetAtt [CreateInstanceFromSnapshotLambdaFunction, Arn]
               - !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
               - !GetAtt [UpdateDatabaseCNAMELambdaFunction, Arn]
               - !GetAtt [RenameOldDatabaseInstanceLambdaFunction, Arn]

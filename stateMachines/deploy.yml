@@ -35,16 +35,16 @@ definition:
         - ErrorEquals:
             - StackDoesNotExistError
           ResultPath: null
-          Next: CreateBaseTemplate
+          Next: CreateStackFromTemplate
         - ErrorEquals:
             - States.ALL
           ResultPath: $.errorInfo
           Next: NotifyError
       Next: SendFunctionsZipToS3
 
-    CreateBaseTemplate:
+    CreateStackFromTemplate:
       Type: Task
-      Resource: !GetAtt [CreateBaseTemplateLambdaFunction, Arn]
+      Resource: !GetAtt [CreateStackFromTemplateLambdaFunction, Arn]
       ResultPath: null
       Parameters:
         Payload:
@@ -64,9 +64,9 @@ definition:
             - States.ALL
           ResultPath: $.errorInfo
           Next: NotifyError
-      Next: WaitCreateTemplate
+      Next: WaitCreateStack
 
-    WaitCreateTemplate:
+    WaitCreateStack:
       Type: Wait
       Seconds: 60
       Next: IsStackCreated
@@ -92,7 +92,7 @@ definition:
         - ErrorEquals:
             - StackStillNotReady
           ResultPath: null
-          Next: WaitCreateTemplate
+          Next: WaitCreateStack
         - ErrorEquals:
             - States.ALL
           ResultPath: $.errorInfo

@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
   notify,
+  isTruthy,
 } from './utils';
 
 const stepfunctions = new AWS.StepFunctions({ apiVersion: '2016-11-23' });
@@ -62,14 +63,14 @@ export const pullRequestApproved = async (event, context) => {
     await stepfunctions.startExecution({
       stateMachineArn: process.env.stateMachineArn,
       input: JSON.stringify({
-        isServerless: ['true', 't', true].indexOf(process.env.serverlessEnabled) > -1,
-        isWebpack: ['true', 't', true].indexOf(process.env.webpackEnabled) > -1,
+        isServerless: isTruthy(process.env.serverlessEnabled),
+        isWebpack: isTruthy(process.env.webpackEnabled),
         s3Options: {
-          enabled: ['true', 't', true].indexOf(process.env.syncS3Enabled) > -1,
+          enabled: isTruthy(process.env.syncS3Enabled),
         },
         databaseOptions: {
-          migrateEnabled: ['true', 't', true].indexOf(process.env.migrateEnabled) > -1,
-          isRDS: ['true', 't', true].indexOf(process.env.isRDS) > -1,
+          migrateEnabled: isTruthy(process.env.migrateEnabled),
+          isRDS: isTruthy(process.env.isRDS),
           migrationsChanged: false,
         },
         bitbucket: {
