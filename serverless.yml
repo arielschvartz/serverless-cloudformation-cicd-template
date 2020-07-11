@@ -323,7 +323,7 @@ functions:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
       CF_QA_ROLE_ARN: ${self:custom.qa.cloudformation.roleArn}
       CF_PRODUCTION_ROLE_ARN: ${self:custom.cloudformation.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-create-cf-role
+    iamRoleStatementsName: ${parent:service-name}-create-cf-from-template-role
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -462,7 +462,7 @@ functions:
     handler: src/rollback/database.createInstanceFromSnapshot
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-rollback-snapshot-role
+    iamRoleStatementsName: ${parent:service-name}-instance-from-snapshot-role
     iamRoleStatements:
       - Effect: Allow
         Action: sts:AssumeRole
