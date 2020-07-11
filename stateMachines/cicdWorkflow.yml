@@ -1,0 +1,308 @@
+name: ${self:custom.stateMachine.workflow}
+id: CICDWorkflowStateMachine
+role: !GetAtt [StateMachineRole, Arn]
+definition:
+  Comment: |
+    State machine for controlling the workflow of a new code deploy to QA and Production environments.
+  StartAt: OpenNewBranch
+  States:
+    OpenNewBranch:
+      Type: Task
+      Resource: !GetAtt [OpenNewBranchLambdaFunction, Arn]
+      InputPath: $.bitbucket
+      ResultPath: $.bitbucket.newBranchName
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+      Next: DownloadAndSaveSource
+
+    DownloadAndSaveSource:
+      Type: Task
+      Resource: !GetAtt [DownloadAndSaveSourceLambdaFunction, Arn]
+      InputPath: $.bitbucket
+      ResultPath: $.source
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+            - States.Timeout
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+      Next: Package
+
+    Package:
+      Type: Parallel
+      ResultPath: $.packages
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+      Branches:
+        - ${file(stateMachines/build/serverless.yml)}
+        - ${file(stateMachines/build/webpack.yml)}
+      Next: MapPackagingVariables
+
+    MapPackagingVariables:
+      Type: Task
+      Resource: !GetAtt [MapPackagingVariablesLambdaFunction, Arn]
+      InputPath: $.packages
+      ResultPath: $.packages
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+            - States.Timeout
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+      Next: HasMigrationChoice
+
+    HasMigrationChoice:
+      Type: Choice
+      Choices:
+        - Variable: $.databaseOptions.migrateEnabled
+          BooleanEquals: true
+          Next: HasMigrationsChecksumChanged
+      Default: DeployQA
+
+    # HasMigrationsChecksumChanged:
+    #   Type: Pass
+    #   Result: true
+    #   ResultPath: $.databaseOptions.migrationsChanged
+    #   Next: DeployQA
+
+    HasMigrationsChecksumChanged:
+      Type: Task
+      Resource: !GetAtt [HasMigrationsChecksumChangedLambdaFunction, Arn]
+      Next: DeployQA
+      ResultPath: $.databaseOptions.migrationsChanged
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+            - States.Timeout
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    DeployQA:
+      Type: Task
+      Resource: arn:aws:states:::states:startExecution.waitForTaskToken
+      # LIMIT TO 1 HOUR
+      HeartbeatSeconds: 3600
+      Next: CodeReview
+      ResultPath: $.deployQA
+      Parameters:
+        StateMachineArn: !Ref DeployStateMachine
+        Input:
+          environment: qa
+          isServerless.$: $.isServerless
+          databaseOptions.$: $.databaseOptions
+          s3Options.$: $.s3Options
+          isWebpack.$: $.isWebpack
+          source.$: $.source
+          packages.$: $.packages.qa
+          taskToken.$: $$.Task.Token
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    CodeReview:
+      Type: Task
+      Resource: arn:aws:states:::lambda:invoke.waitForTaskToken
+      ResultPath: null
+      Parameters:
+        FunctionName: !GetAtt [OpenPRLambdaFunction, Arn]
+        Payload:
+          taskToken.$: $$.Task.Token
+          executionId.$: $$.Execution.Id
+          sourceBranchName.$: $.bitbucket.newBranchName
+          destinationBranchName.$: $.bitbucket.destination.name
+          title.$: $.bitbucket.pullrequest.title
+          description.$: $.bitbucket.pullrequest.description
+      Next: DeployProduction
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - PullRequestRejected
+          ResultPath: $.errorInfo
+          Next: RollbackQADatabase
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    RollbackQADatabase:
+      Type: Task
+      Resource: arn:aws:states:::states:startExecution.waitForTaskToken
+      # LIMIT TO 1 HOUR
+      HeartbeatSeconds: 3600
+      Next: RollbackQACloudformation
+      ResultPath: $.rollbackQA
+      Parameters:
+        StateMachineArn: !Ref RollbackDatabaseStateMachine
+        Input:
+          environment: qa
+          rdsIdentifier.$: $.packages.qa.serverless.rdsIdentifier
+          dbDomain.$: $.packages.qa.serverless.rdsDomain
+          hostedZoneId.$: $.packages.qa.serverless.hostedZoneId
+          snapshotIdentifier.$: $.deployQA.Payload.snapshotIdentifier
+          databaseOptions.$: $.databaseOptions
+          taskToken.$: $$.Task.Token
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    RollbackQACloudformation:
+      Type: Pass
+      Next: NotifyError
+
+    DeployProduction:
+      Type: Task
+      Resource: arn:aws:states:::states:startExecution.waitForTaskToken
+      # LIMIT TO 1 HOUR
+      HeartbeatSeconds: 3600
+      ResultPath: $.deployProduction
+      Next: SaveBackup
+      Parameters:
+        StateMachineArn: !Ref DeployStateMachine
+        Input:
+          environment: production
+          isServerless.$: $.isServerless
+          databaseOptions.$: $.databaseOptions
+          s3Options.$: $.s3Options
+          isWebpack.$: $.isWebpack
+          source.$: $.source
+          packages.$: $.packages.production
+          taskToken.$: $$.Task.Token
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: RollbackProductionCloudformation
+
+    RollbackProductionCloudformation:
+       Type: Pass
+       Next: NotifyError
+
+    SaveBackup:
+      Type: Task
+      Resource: !GetAtt [SaveBackupLambdaFunction, Arn]
+      Parameters:
+        Payload:
+          isServerless.$: $.isServerless
+          isWebpack.$: $.isWebpack
+          packages.$: $.packages
+      ResultPath: null
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+      Next: NotifySuccess
+
+    NotifySuccess:
+      Type: Task
+      Resource: !GetAtt [NotifySuccessLambdaFunction, Arn]
+      Parameters:
+        Payload:
+          branchName.$: $.bitbucket.newBranchName
+          executionId.$: $$.Execution.Id
+      End: true
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    # RollbackProduction:
+    #   Type: Task
+    #   Resource: arn:aws:states:::states:startExecution.waitForTaskToken
+    #   # LIMIT TO 1 HOUR
+    #   HeartbeatSeconds: 3600
+    #   Parameters:
+    #     StateMachineArn: !GetAtt [RollbackDatabaseStateMachine, Arn]
+    #     Input:
+    #       environment: production
+    #   Catch:
+    #     - ErrorEquals:
+    #         - States.ALL
+    #       ResultPath: $.errorInfo
+    #       Next: NotifyError
+    #   Next: RollbackQA
+
+    NotifyError:
+      Type: Task
+      Resource: !GetAtt [NotifyErrorLambdaFunction, Arn]
+      ResultPath: null
+      Next: DeleteCreatedBranch
+      Parameters:
+        Payload:
+          executionId.$: $$.Execution.Id
+          errorInfo.$: $.errorInfo
+
+    DeleteCreatedBranch:
+      Type: Task
+      Resource: !GetAtt [DeleteCreatedBranchLambdaFunction, Arn]
+      ResultPath: null
+      Next: Fail
+      Parameters:
+        Payload:
+          branchName.$: $.bitbucket.newBranchName
+
+    Fail:
+      Type: Fail

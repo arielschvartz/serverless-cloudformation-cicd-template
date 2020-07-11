@@ -5,18 +5,25 @@ Resources:
       Name: ${self:custom.syncS3.projectName}
       Description: Get the generated build artifact and sync its contents to the S3 bucket.
       Artifacts:
-        Type: CODEPIPELINE
+        Type: NO_ARTIFACTS
       EncryptionKey: !GetAtt [KMSKey, Arn]
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
         Image: aws/codebuild/standard:2.0
+        EnvironmentVariables:
+          - Name: QA_ACCOUNT
+            Type: PLAINTEXT
+            Value: ${self:custom.qa.accountId}
+          - Name: QA_ROLE_NAME
+            Type: PLAINTEXT
+            Value: ${self:custom.qa.roleName}
       LogsConfig:
         CloudWatchLogs:
           Status: ENABLED
       Source:
+        Type: NO_SOURCE
         BuildSpec: |
           ${fileToString:resources/buildspecs/syncPackageToS3.yml}
-        Type: CODEPIPELINE
-      ServiceRole: !GetAtt [PipelineRole, Arn]
+      ServiceRole: !GetAtt [CodebuildRole, Arn]
       TimeoutInMinutes: 30

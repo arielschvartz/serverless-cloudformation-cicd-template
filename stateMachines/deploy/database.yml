@@ -1,0 +1,72 @@
+StartAt: MigrateDatabaseChoice
+States:
+  MigrateDatabaseChoice:
+    Type: Choice
+    Choices:
+      - And:
+        - Variable: $.databaseOptions.migrationsChanged
+          BooleanEquals: true
+        - Variable: $.databaseOptions.isRDS
+          BooleanEquals: true
+        Next: TakeRDSSnapshot
+      - And:
+        - Variable: $.databaseOptions.migrationsChanged
+          BooleanEquals: true
+        - Variable: $.databaseOptions.isRDS
+          BooleanEquals: false
+        Next: MigrateDatabase
+    Default: SetDatabaseSnapshotToNull
+
+  TakeRDSSnapshot:
+    Type: Task
+    Resource: !GetAtt [TakeRDSSnapshotLambdaFunction, Arn]
+    ResultPath: $.snapshotIdentifier
+    Parameters:
+      Payload:
+        rdsIdentifier.$: $.packages.serverless.rdsIdentifier
+        environment.$: $.environment
+    Next: WaitCreateSnapshot
+
+  WaitCreateSnapshot:
+    Type: Wait
+    Seconds: 300
+    Next: IsSnapshotReady
+
+  IsSnapshotReady:
+    Type: Task
+    Resource: !GetAtt [IsSnapshotReadyLambdaFunction, Arn]
+    ResultPath: null
+    Parameters:
+      Payload:
+        environment.$: $.environment
+        rdsIdentifier.$: $.packages.serverless.rdsIdentifier
+        snapshotIdentifier.$: $.snapshotIdentifier
+    Catch:
+      - ErrorEquals:
+          - SnapshotNotReadyError
+        ResultPath: null
+        Next: WaitCreateSnapshot
+    Next: MigrateDatabase
+
+  MigrateDatabase:
+    Type: Task
+    Resource: arn:aws:states:::codebuild:startBuild.sync
+    Next: DatabaseSuccessState
+    ResultPath: null
+    Parameters:
+      ProjectName: !Ref MigrateDatabaseProject
+      EnvironmentVariablesOverride:
+        - Name: ENVIRONMENT
+          Type: PLAINTEXT
+          Value.$: $.environment
+      SourceTypeOverride: S3
+      SourceLocationOverride.$: $.source.location
+
+  SetDatabaseSnapshotToNull:
+    Type: Pass
+    Next: DatabaseSuccessState
+    Result: false
+    ResultPath: $.snapshotIdentifier
+
+  DatabaseSuccessState:
+    Type: Succeed

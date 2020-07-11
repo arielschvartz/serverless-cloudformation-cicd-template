@@ -1,0 +1,231 @@
+name: ${self:custom.stateMachine.deploy}
+id: DeployStateMachine
+role: !GetAtt [StateMachineRole, Arn]
+definition:
+  Comment: |
+    State machine for packaging the source code, building the necessary resources on cloudformation and syncing the necessary S3 buckets.
+  StartAt: IsServerlessChoice
+  States:
+    IsServerlessChoice:
+      Type: Choice
+      Choices:
+        - Variable: $.isServerless
+          BooleanEquals: true
+          Next: CheckIfCFStackExists
+      Default: ExtraActionsInParallel
+
+    CheckIfCFStackExists:
+      Type: Task
+      Resource: !GetAtt [CheckIfCFStackExistsLambdaFunction, Arn]
+      ResultPath: $.cfStackExists
+      Parameters:
+        Payload:
+          package.$: $.packages.serverless
+          environment.$: $.environment
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - States.Timeout
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - StackDoesNotExistError
+          ResultPath: null
+          Next: CreateBaseTemplate
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+      Next: SendFunctionsZipToS3
+
+    CreateBaseTemplate:
+      Type: Task
+      Resource: !GetAtt [CreateBaseTemplateLambdaFunction, Arn]
+      ResultPath: null
+      Parameters:
+        Payload:
+          package.$: $.packages.serverless
+          environment.$: $.environment
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - States.Timeout
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+      Next: WaitCreateTemplate
+
+    WaitCreateTemplate:
+      Type: Wait
+      Seconds: 60
+      Next: IsStackCreated
+
+    IsStackCreated:
+      Type: Task
+      Resource: !GetAtt [IsStackReadyLambdaFunction, Arn]
+      ResultPath: null
+      Parameters:
+        Payload:
+          package.$: $.packages.serverless
+          environment.$: $.environment
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - States.Timeout
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - StackStillNotReady
+          ResultPath: null
+          Next: WaitCreateTemplate
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+      Next: SendFunctionsZipToS3
+
+    SendFunctionsZipToS3:
+      Type: Task
+      Resource: arn:aws:states:::codebuild:startBuild.sync
+      Next: UpdateCFTemplate
+      ResultPath: null
+      Parameters:
+        ProjectName: !Ref DeployFunctionsProject
+        EnvironmentVariablesOverride:
+          - Name: ENVIRONMENT
+            Type: PLAINTEXT
+            Value.$: $.environment
+          - Name: SLS_BUCKET
+            Type: PLAINTEXT
+            Value.$: $.packages.serverless.deploymentBucket
+          - Name: SLS_PATH
+            Type: PLAINTEXT
+            Value.$: $.packages.serverless.artifactDirectoryName
+        SourceTypeOverride: S3
+        SourceLocationOverride.$: $.packages.serverless.package.Location
+
+    UpdateCFTemplate:
+      Type: Task
+      Resource: !GetAtt [UpdateCFTemplateLambdaFunction, Arn]
+      ResultPath: null
+      Next: WaitUpdateTemplate
+      Parameters:
+        Payload:
+          package.$: $.packages.serverless
+          environment.$: $.environment
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - States.Timeout
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    WaitUpdateTemplate:
+      Type: Wait
+      Seconds: 60
+      Next: IsStackUpdated
+
+    IsStackUpdated:
+      Type: Task
+      Resource: !GetAtt [IsStackReadyLambdaFunction, Arn]
+      ResultPath: null
+      Parameters:
+        Payload:
+          package.$: $.packages.serverless
+          environment.$: $.environment
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - States.Timeout
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - StackStillNotReady
+          ResultPath: null
+          Next: WaitUpdateTemplate
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+      Next: ExtraActionsInParallel
+
+    ExtraActionsInParallel:
+      Type: Parallel
+      Next: NotifySuccess
+      Branches:
+        - ${file(stateMachines/deploy/database.yml)}
+        - ${file(stateMachines/deploy/s3.yml)}
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    NotifyError:
+      Type: Task
+      Resource: !GetAtt [NotifyFailToStepFunctionLambdaFunction, Arn]
+      Parameters:
+        Payload:
+          errorInfo.$: $.errorInfo
+          taskToken.$: $.taskToken
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - States.Timeout
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Next: DeployFailed
+
+    DeployFailed:
+      Type: Fail
+
+    NotifySuccess:
+      Type: Task
+      Resource: !GetAtt [NotifySuccessToStepFunctionLambdaFunction, Arn]
+      Parameters:
+        Payload:
+          taskToken.$: $[0].taskToken
+          snapshotIdentifier.$: $[0].snapshotIdentifier
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - States.Timeout
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Next: DeploySuccessful
+
+    DeploySuccessful:
+      Type: Succeed

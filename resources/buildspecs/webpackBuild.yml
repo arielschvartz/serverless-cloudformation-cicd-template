@@ -4,9 +4,6 @@ phases:
     runtime-versions:
       nodejs: 12
     commands:
-      # GET INSIDE THE FOLDER
-      - cd $(ls -d */|head -n 1)
-
       - npm install --silent
   pre_build:
     commands:
@@ -14,32 +11,33 @@ phases:
         ${self:custom.webpackBuild.prebuild}
   build: # only runs if pre-build succeeded
     commands:
-      - mkdir -p ../$QA_TARGET_DIR
-      - mkdir -p ../$PROD_TARGET_DIR
+      - mkdir -p $QA_TARGET_DIR
+      - mkdir -p $PROD_TARGET_DIR
 
       - ${self:custom.webpackBuild.packageProduction}
-      - cp -R ${self:custom.webpackBuild.packageOutputFolder}/. ../$PROD_TARGET_DIR/
+      - cp -R ${self:custom.webpackBuild.packageOutputFolder}/. $PROD_TARGET_DIR/
       - rm -rf ${self:custom.webpackBuild.packageOutputFolder}
       
       # ASSUMING QA ROLE IF ONE QA TO DO EVERYTHING ON BEHALF OF THAT USER
       - ${escapedFileToString:resources/buildspecs/assumeQARole.sh}
         
       - ${self:custom.webpackBuild.packageQA}
-      - cp -R ${self:custom.webpackBuild.packageOutputFolder}/. ../$QA_TARGET_DIR/
+      - cp -R ${self:custom.webpackBuild.packageOutputFolder}/. $QA_TARGET_DIR/
       - rm -rf ${self:custom.webpackBuild.packageOutputFolder}
+
 cache:
   paths:
     - 'node_modules/**/*'
 
 artifacts:
   secondary-artifacts:
-    QAWebpackArtifact:
-      name: QAWebpackArtifact
+    ${self:custom.webpackBuild.artifactNameQA}:
+      name: webpack-artifact.zip
       base-directory: $QA_TARGET_DIR/
       files:
         - '**/*'
-    ProductionWebpackArtifact:
-      name: ProductionWebpackArtifact
+    ${self:custom.webpackBuild.artifactNameProduction}:
+      name: webpack-artifact.zip
       base-directory: $PROD_TARGET_DIR/
       files:
         - '**/*'

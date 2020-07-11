@@ -1,7 +1,6 @@
 Resources:
   KMSKey:
     DependsOn:
-      - PipelineRole
       - CodebuildRole
     Type: AWS::KMS::Key
     Properties:
@@ -22,7 +21,6 @@ Resources:
             Principal:
               AWS:
                 - !GetAtt [CodebuildRole, Arn]
-                - !GetAtt [PipelineRole, Arn]
                 - ${self:custom.qa.roleArn}
                 - ${self:custom.qa.cloudformation.roleArn}
             Action:

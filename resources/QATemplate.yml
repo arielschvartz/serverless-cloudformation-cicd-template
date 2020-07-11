@@ -89,6 +89,12 @@ Resources:
               - s3:*
               - kms:*
               - rds:DescribeDBInstances
+              - rds:CreateDBSnapshot
+              - rds:DescribeDBSnapshots
+              - rds:RestoreDBInstanceFromDBSnapshot
+              - rds:ModifyDBInstance
+              - rds:DeleteDBInstance
+              - rds:DeleteDBSnapshot
               - secretsmanager:GetSecretValue
               - lambda:GetLayerVersion
               - lambda:ListLayers
@@ -96,6 +102,8 @@ Resources:
               - lambda:UpdateFunctionConfiguration
               - iam:PassRole
               - cognito-idp:ListUserPools
+              - route53:ListHostedZonesByName
+              - route53:ChangeResourceRecordSets
             Resource: '*'
       Roles:
         - Ref: QARole

@@ -1,4 +1,3 @@
-import axios from 'axios';
 import AWS from 'aws-sdk';
 
 const codepipeline = new AWS.CodePipeline({

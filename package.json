@@ -29,7 +29,9 @@
   },
   "dependencies": {
     "axios": "^0.19.2",
+    "extract-zip": "^2.0.1",
     "query-string": "^6.12.1",
+    "serverless-step-functions": "^2.19.0",
     "uuid": "^8.0.0"
   }
 }

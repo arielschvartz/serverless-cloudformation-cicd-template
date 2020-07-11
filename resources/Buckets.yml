@@ -1,19 +1,18 @@
 Resources:
-  PipelineArtifactsS3Bucket:
+  PackageBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: ${self:custom.bucket.artifacts}
+      BucketName: ${self:custom.bucket.package}
       VersioningConfiguration:
         Status: Enabled
 
-  PipelineArtifactsS3BucketPolicy:
+  PackageBucketPolicy:
     DependsOn:
       - CodebuildRole
-      - PipelineRole
-      - PipelineArtifactsS3Bucket
+      - PackageBucket
     Type: AWS::S3::BucketPolicy
     Properties:
-      Bucket: !Ref PipelineArtifactsS3Bucket
+      Bucket: !Ref PackageBucket
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -23,28 +22,31 @@ Resources:
             Principal:
               AWS:
                 - !GetAtt [CodebuildRole, Arn]
-                - !GetAtt [PipelineRole, Arn]
+                - Fn::Join:
+                  - ':'
+                  - - 'arn:aws:iam:'
+                    - !Ref AWS::AccountId
+                    - role/${parent:service-name}-map-packaging-variables-role
                 - ${self:custom.qa.roleArn}
                 - ${self:custom.qa.cloudformation.roleArn}
             Resource:
-              - arn:aws:s3:::${self:custom.bucket.artifacts}
-              - arn:aws:s3:::${self:custom.bucket.artifacts}/*
+              - arn:aws:s3:::${self:custom.bucket.package}
+              - arn:aws:s3:::${self:custom.bucket.package}/*
 
-  PipelineSourceS3Bucket:
+  SourceBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: ${self:custom.bucket.source}
       VersioningConfiguration:
         Status: Enabled
 
-  PipelineSourceS3BucketPolicy:
+  SourceBucketPolicy:
     DependsOn:
       - CodebuildRole
-      - PipelineRole
-      - PipelineSourceS3Bucket
+      - SourceBucket
     Type: AWS::S3::BucketPolicy
     Properties:
-      Bucket: !Ref PipelineSourceS3Bucket
+      Bucket: !Ref SourceBucket
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -54,7 +56,11 @@ Resources:
             Principal:
               AWS:
                 - !GetAtt [CodebuildRole, Arn]
-                - !GetAtt [PipelineRole, Arn]
+                - Fn::Join:
+                  - ':'
+                  - - 'arn:aws:iam:'
+                    - !Ref AWS::AccountId
+                    - role/${parent:service-name}-download-and-save-role
             Resource:
               - arn:aws:s3:::${self:custom.bucket.source}
               - arn:aws:s3:::${self:custom.bucket.source}/*
@@ -69,7 +75,6 @@ Resources:
   CloudFormationTemplatesBackupBucketPolicy:
     DependsOn:
       - CodebuildRole
-      - PipelineRole
       - CloudFormationTemplatesBackupBucket
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -83,7 +88,6 @@ Resources:
             Principal:
               AWS:
                 - !GetAtt [CodebuildRole, Arn]
-                - !GetAtt [PipelineRole, Arn]
             Resource:
               - arn:aws:s3:::${self:custom.bucket.cloudformationTemplatesBackup}
               - arn:aws:s3:::${self:custom.bucket.cloudformationTemplatesBackup}/*

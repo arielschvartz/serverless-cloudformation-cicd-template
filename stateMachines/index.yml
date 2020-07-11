@@ -1,0 +1,10 @@
+validate: true
+stateMachines:
+  cicdWorkflow:
+    ${file(stateMachines/cicdWorkflow.yml)}
+
+  deploy:
+    ${file(stateMachines/deploy.yml)}
+
+  rollbackDatabase:
+    ${file(stateMachines/rollbackDatabase.yml)}

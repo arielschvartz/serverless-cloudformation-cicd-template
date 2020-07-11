@@ -1,0 +1,28 @@
+StartAt: IsWebpackChoice
+States:
+  IsWebpackChoice:
+    Type: Choice
+    Choices:
+      - Variable: $.isWebpack
+        BooleanEquals: true
+        Next: PackageWebpackAndSaveToS3
+    Default: SetWebpackOutputToNull
+
+  SetWebpackOutputToNull:
+    Type: Pass
+    Next: WebpackSuccessState
+    Result: false
+    ResultPath: $
+
+  PackageWebpackAndSaveToS3:
+    Type: Task
+    Resource: arn:aws:states:::codebuild:startBuild.sync
+    Next: WebpackSuccessState
+    ResultPath: $
+    Parameters:
+      ProjectName: !Ref WebpackBuildProject
+      SourceTypeOverride: S3
+      SourceLocationOverride.$: $.source.location
+
+  WebpackSuccessState:
+    Type: Succeed

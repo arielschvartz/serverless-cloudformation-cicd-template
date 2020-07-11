@@ -3,9 +3,24 @@ Resources:
     Type: AWS::CodeBuild::Project
     Properties:
       Name: ${self:custom.webpackBuild.projectName}
-      Description: This build is part of the ${self:custom.pipeline.name}. It builds QA and Production packages from source stored in the artifacts S3, and yields them as artifacts for the pipeline's next steps.
+      Description: This build is part of the CI/CD State Machine. It builds QA and Production packages from source stored in the artifacts S3, and yields them as artifacts for the pipeline's next steps.
       Artifacts:
-        Type: CODEPIPELINE
+        Type: NO_ARTIFACTS
+      SecondaryArtifacts:
+        - ArtifactIdentifier: ${self:custom.webpackBuild.artifactNameQA}
+          Name: webpack-artifact.zip
+          Type: S3
+          Location: !Ref PackageBucket
+          NamespaceType: BUILD_ID
+          Packaging: ZIP
+          Path: qa
+        - ArtifactIdentifier: ${self:custom.webpackBuild.artifactNameProduction}
+          Name: webpack-artifact.zip
+          Type: S3
+          Location: !Ref PackageBucket
+          NamespaceType: BUILD_ID
+          Packaging: ZIP
+          Path: production
       EncryptionKey: !GetAtt [KMSKey, Arn]
       Environment:
         Type: LINUX_CONTAINER
@@ -28,8 +43,8 @@ Resources:
         CloudWatchLogs:
           Status: ENABLED
       Source:
-        Type: CODEPIPELINE
+        Type: NO_SOURCE
         BuildSpec: |
           ${fileToString:resources/buildspecs/webpackBuild.yml}
-      ServiceRole: !GetAtt [PipelineRole, Arn]
+      ServiceRole: !GetAtt [CodebuildRole, Arn]
       TimeoutInMinutes: 30

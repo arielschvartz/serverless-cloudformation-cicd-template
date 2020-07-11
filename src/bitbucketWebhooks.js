@@ -1,7 +1,11 @@
 import AWS from 'aws-sdk';
+import { v4 as uuidv4 } from 'uuid';
 
-const s3 = new AWS.S3({ apiVersion: '2006-03-01' });
-const codepipeline = new AWS.CodePipeline({ apiVersion: '2015-07-09' });
+import {
+  notify,
+} from './utils';
+
+const stepfunctions = new AWS.StepFunctions({ apiVersion: '2016-11-23' });
 
 export const pullRequestApproved = async (event, context) => {
   const body = JSON.parse(event.body);
@@ -46,61 +50,153 @@ export const pullRequestApproved = async (event, context) => {
   // CHECK IF IS APPROVED FROM A BRANCH TO THE DESTINATION BRANCH AND IS NOT A TEMPORARY BRANCH CREATED BY THE PIPELINE
   if (
     (destinationBranchName !== process.env.destinationBranchName)
-    || (sourceBranchName.startsWith('cicd-'))
+    || (sourceBranchName.startsWith(process.env.branchPrefix))
   ) {
-    return;
+    return {
+      status: 200,
+      body: 'CI/CD did not start. If it should have started, check if you are opening the PR from and to the right branches',
+    }
   }
 
-  await s3.putObject({
-    Bucket: process.env.sourceBucketName,
-    Body: JSON.stringify({
-      approver: {
-        displayName: approvalAuthorDisplayName,
-        nickname: approvalAuthorNickname,
+  try {
+    await stepfunctions.startExecution({
+      stateMachineArn: process.env.stateMachineArn,
+      input: JSON.stringify({
+        isServerless: ['true', 't', true].indexOf(process.env.serverlessEnabled) > -1,
+        isWebpack: ['true', 't', true].indexOf(process.env.webpackEnabled) > -1,
+        s3Options: {
+          enabled: ['true', 't', true].indexOf(process.env.syncS3Enabled) > -1,
+        },
+        databaseOptions: {
+          migrateEnabled: ['true', 't', true].indexOf(process.env.migrateEnabled) > -1,
+          isRDS: ['true', 't', true].indexOf(process.env.isRDS) > -1,
+          migrationsChanged: false,
+        },
+        bitbucket: {
+          approver: {
+            displayName: approvalAuthorDisplayName,
+            nickname: approvalAuthorNickname,
+          },
+          author: {
+            displayName: authorDisplayName,
+            nickname: authorNickname,
+          },
+          pullrequest: {
+            id: pullRequestId,
+            title,
+            description,
+            createdAt,
+          },
+          source: {
+            name: sourceBranchName,
+            repository: {
+              name: sourceRepositoryName,
+              fullName: sourceRepositoryFullName,
+            }
+          },
+          destination: {
+            name: destinationBranchName,
+            repository: {
+              name: destinationRepositoryName,
+              fullName: destinationRepositoryFullName,
+            },
+          },
+        },
+      }),
+      name: `${sourceBranchName.substring(0, 40)}-${uuidv4()}`,
+    }).promise();
+
+    return {
+      status: 200,
+      body: 'CI/CD Workflow successfully started.',
+    }
+  } catch (error) {
+    return {
+      status: 500,
+      body: `CI/CD Workflow did not start. ${error}`,
+    }
+  }
+}
+
+export const pullRequestMergedOrDeclined = async (event, context) => {
+  console.log("EVENT", event);
+
+  try {
+    const {
+      headers: {
+        'X-Event-Key': eventKey,
       },
-      author: {
-        displayName: authorDisplayName,
-        nickname: authorNickname,
-      },
+    } = event;
+
+    const body = JSON.parse(event.body);
+
+    const {
       pullrequest: {
-        id: pullRequestId,
-        title,
         description,
-        createdAt,
-      },
-      source: {
-        name: sourceBranchName,
-        repository: {
-          name: sourceRepositoryName,
-          fullName: sourceRepositoryFullName,
-        }
-      },
-      destination: {
-        name: destinationBranchName,
-        repository: {
-          name: destinationRepositoryName,
-          fullName: destinationRepositoryFullName,
-        }
+        destination: {
+          branch: {
+            name: destinationBranchName,
+          }
+        },
+        source: {
+          branch: {
+            name: sourceBranchName,
+          }
+        },
       }
-    }),
-    Key: process.env.sourceKey,
-  }).promise();
+    } = body;
 
-  return codepipeline.startPipelineExecution({
-    name: process.env.pipelineName,
-  }).promise();
-}
+    if (
+      (destinationBranchName !== process.env.destinationBranchName)
+      || (!sourceBranchName.startsWith(process.env.branchPrefix))
+    ) {
+      return {
+        status: 200,
+        body: 'The merged PR does not follow the patterns of a running CI/CD execution.',
+      }
+    }
 
-export const pullRequestMerged = async (event, context) => {
-  const body = JSON.parse(event.body);
+    const {
+      taskToken,
+      executionURL,
+    } = JSON.parse(description);
 
-  console.log("EVENT", JSON.stringify(body));
-  return;
-}
+    if (eventKey === 'pullrequest:rejected') {
+      await stepfunctions.sendTaskFailure({
+        taskToken,
+        error: 'PullRequestRejected',
+        cause: 'The Pull Request was rejected.',
+      }).promise();
 
-export const pullRequestDeclined = async (event, context) => {
-  const body = JSON.parse(event.body);
+      await notify({
+        title: `${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} - CI/CD Code Rejected!`,
+        text: `The PR was declined! The CI/CD will start the rollback now.\nThis CI/CD execution can be found at ${executionURL}`,
+        status: 'error',
+      });
+    } else if (eventKey === 'pullrequest:fulfilled') {
+      await stepfunctions.sendTaskSuccess({
+        taskToken,
+        output: 'pullrequest:fulfilled',
+      }).promise();
 
-  console.log("EVENT", JSON.stringify(body));
-  return;
+      await notify({
+        title: `${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} - CI/CD Code Approved!`,
+        text: `The PR was approved and the new code is being deployed to production now!\nThis CI/CD execution can be found at ${executionURL}`,
+        status: 'success',
+      });
+    } else {
+      return {
+        status: 200,
+        body: `The X-Event-Key ${eventKey} is not a valid one.`
+      }
+    }
+
+    return {
+      status: 200,
+      body: 'Successfully notified the step function.'
+    }
+  } catch (error) {
+    console.log("ERROR", error);
+    throw error;
+  }
 }

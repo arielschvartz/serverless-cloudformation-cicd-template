@@ -8,15 +8,7 @@ phases:
       - echo 'install'
   build:
     commands:
-      - ls -a
-
-      - sls_bucket="$(cat serverless-state.json | python3 -c "import sys, json; print(json.load(sys.stdin)['service']['provider']['deploymentBucket'])")"
-      - sls_path="$(cat serverless-state.json | python3 -c "import sys, json; print(json.load(sys.stdin)['package']['artifactDirectoryName'])")"
-      # - sls_stack_name="$(cat serverless-state.json | python3 -c "import sys, json; print(json.load(sys.stdin)['service']['stackName'])")"
-      # - sls_region="$(cat serverless-state.json | python3 -c "import sys, json; print(json.load(sys.stdin)['service']['stackName'])")"
-
-
-      - destination="s3://$sls_bucket/$sls_path"
+      - destination="s3://$SLS_BUCKET/$SLS_PATH"
       - echo $destination
       # ASSUMING QA ROLE IF ONE QA TO DO EVERYTHING ON BEHALF OF THAT USER
       - |
@@ -24,16 +16,5 @@ phases:
         then
           ${escapedFileToString:resources/buildspecs/assumeQARole.sh}
         fi
-
-      # CREATE THE STACK IF NEEDED SINCE WE ARE NOT DOING THE DEFAULT SERVERLESS DEPLOY WILL NOT BE HAPPENING IN THE PIPELINE
-      - echo $TEMPLATE > temp.json;
-      - cat temp.json;
-      - |
-        if aws cloudformation get-template --region $AWS_REGION --stack-name $STACK_NAME 2>&1 | grep -q 'does not exist';
-          then
-            aws cloudformation create-stack --capabilities 'CAPABILITY_IAM' 'CAPABILITY_NAMED_IAM' 'CAPABILITY_AUTO_EXPAND' --template-body "file:///$(pwd)/temp.json" --stack-name $STACK_NAME --output text --query "StackId" --region $AWS_REGION --parameters ParameterKey=DeploymentBucketName,ParameterValue="$sls_bucket" ParameterKey=RoleName,ParameterValue="$CLOUDFORMATION_ROLE_NAME"
-
-            aws cloudformation wait stack-create-complete --region $AWS_REGION --stack-name $STACK_NAME
-          fi
 
       - aws s3 sync . $destination

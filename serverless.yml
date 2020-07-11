@@ -6,6 +6,7 @@ plugins:
   - serverless-pseudo-parameters
   - serverless-webpack
   - serverless-iam-roles-per-function
+  - serverless-step-functions
 
 package:
   exclude:
@@ -25,47 +26,46 @@ custom:
     packager: 'yarn' # Packager that will be used to package your external modules
 
   bitbucket:
-    connection: ${parent:service-name}-bitbucket-connection
-    sourceBranch: ${opt:qa-branch-name, 'qa'}
     targetBranch: ${opt:production-branch-name, 'master'}
     repository: ${opt:bitbucket-repository}
     workspace: ${opt:bitbucket-workspace}
     clientId: ${opt:bitbucket-client-id}
     secret: ${opt:bitbucket-secret}
+    branchPrefix: 'cicd/'
 
   production:
     accountId: ${opt:production-account-id}
 
   qa:
-    stageName: ${opt:qa-stage-name, 'qa'}
     stackName: ${parent:service-name}-cicd-roles
+    stageName: ${opt:qa-stage-name, 'qa'}
     accountId: ${opt:qa-account-id}
     roleName: ${opt:qa-role-name, '${parent:service-name}-cicd-role'}
     roleArn: ${opt:qa-role-arn, 'arn:aws:iam::${self:custom.qa.accountId}:role/${self:custom.qa.roleName}'}
     cloudformation:
       roleArn: ${opt:qa-cloudformation-role-arn, 'arn:aws:iam::${self:custom.qa.accountId}:role/${self:custom.cloudformation.roleName}'}
 
-  pipeline:
-    name: ${opt:pipeline-name, '${parent:service-name}-cicd'}
-    roleName: ${opt:pipeline-role-name, '${self:custom.pipeline.name}-cicd-codepipeline-role'}
-    policyName: ${opt:pipeline-policy-name, '${self:custom.pipeline.name}-codepipeline-policy'}
+  stateMachine:
+    name: ${opt:state-machine-name, '${parent:service-name}-cicd'}
+    roleName: ${opt:state-machine-role-name, '${self:custom.stateMachine.name}-cicd-state-machine-role'}
+    policyName: ${opt:state-machine-policy-name, '${self:custom.stateMachine.name}-state-machine-policy'}
 
-  source:
-    objectKey: 'pipelineExecution.json'
+    workflow: ${self:custom.stateMachine.name}-workflow
+    deploy: ${self:custom.stateMachine.name}-deploy
+    rollbackDatabase: ${self:custom.stateMachine.name}-rollback-database
 
   codebuild:
     roleName: ${opt:codebuild-role-name, '${parent:service-name}-cicd-codebuild-role'}
     policyName: ${opt:codebuild-policy-name, '${parent:service-name}-codebuild-policy'}
 
   cloudformation:
-    enabled: ${strToBool(${opt:cloudformation-enabled, 'true'})}
-    stackName: ${opt:cloudformation-stack-name}
+    # enabled: ${strToBool(${opt:cloudformation-enabled, 'true'})}
     roleName: ${opt:cloudformation-role-name, '${parent:service-name}-cicd-cloudformation-role'}
-    roleArn: ${arn:aws:iam::${self:custom.production.accountId}:role/${self:custom.cloudformation.roleName}
+    roleArn: arn:aws:iam::${self:custom.production.accountId}:role/${self:custom.cloudformation.roleName}
     policyName: ${opt:cloudformation-policy-name, '${parent:service-name}-cloudformation-policy'}
 
   bucket:
-    artifacts: ${opt:artifacts-bucket-name, '${parent:service-name}-cicd-artifacts'}
+    package: ${opt:package-bucket-name, '${parent:service-name}-cicd-package'}
     source: ${opt:source-bucket-name, '${parent:service-name}-cicd-source'}
     cloudformationTemplatesBackup: ${opt:cloudformation-templates-backup-bucket-name, '${parent:service-name}-cicd-cloudformation-templates-backup'}
 
@@ -76,8 +76,10 @@ custom:
   serverless:
     enabled: ${strToBool(${opt:serverless-enabled, 'true'})}
     projectName: ${parent:service-name}-codebuild-serverless-build-project
-    artifactNameQA: ${parent:service-name}-serverless-artifact-qa
-    artifactNameProduction: ${parent:service-name}-serverless-artifact-production
+    artifactNameQA: ServerlessArtifactQA
+    artifactNameProduction: ServerlessArtifactProduction
+    stateQA: ServerlessStateQA
+    stateProduction: ServerlessStateProduction
     packageQA: ${opt:serverless-build-package-qa-command, 'serverless package --stage ${self:custom.qa.stageName} -v -r ${self:custom.region}'}
     packageProduction: ${opt:serverless-build-package-production-command, 'serverless package --stage production -v -r ${self:custom.region}'}
     packageOutputFolder: ${opt:serverless-build-package-output-folder, '.serverless'}
@@ -86,8 +88,8 @@ custom:
   webpackBuild:
     enabled: ${strToBool(${opt:webpack-enabled, 'false'})}
     projectName: ${parent:service-name}-codebuild-webpack-build-project
-    artifactNameQA: ${parent:service-name}-webpack-artifact-qa
-    artifactNameProduction: ${parent:service-name}-webpack-artifact-production
+    artifactNameQA: WebpackArtifactQA
+    artifactNameProduction: WebpackArtifactProduction
     packageQA: ${opt:webpack-build-package-qa-command, 'npm run build:qa'}
     packageProduction: ${opt:webpack-build-package-production-command, 'npm run build:production'}
     packageOutputFolder: ${opt:webpack-build-package-output-folder, 'dist'}
@@ -96,28 +98,28 @@ custom:
   syncS3:
     enabled: ${strToBool(${opt:sync-s3-enabled, 'false'})}
     projectName: ${parent:service-name}-codebuild-sync-s3-project
-    artifact: ${opt:sync-s3-build-method, 'webpack'}
     rootFolder: ${opt:sync-s3-root-folder, './'}
-    gzip: ${strToBool(${opt:sync-s3-encode-gzip, 'true'})}
-    bucket: ${opt:sync-s3-bucket-name}
+    gzip: ${opt:sync-s3-encode-gzip, 'true'}
+    source: ${opt:sync-s3-source, 'package'}
 
   deployFunctions:
     projectName: ${parent:service-name}-codebuild-deploy-functions-project
 
   migrate:
     enabled: ${strToBool(${opt:migrate-database-enabled, 'true'})}
+    migrationsFolder: ${opt:migrations-folder, 'migrations'}
     projectName: ${parent:service-name}-codebuild-migrate-project
     install: ${opt:migrate-install-extra, "echo 'install'"}
     command: ${opt:migrate-database-command}
+    isRDS: ${strToBool(${opt:rds-database, 'true'})}
 
-  rdsDatabase:
-    enabled: ${strToBool(${opt:rds-database-enabled, 'true'})}
+  domain:
+    hostedZone: ${opt:hosted-zone}
+    dbDomain: ${opt:rds-domain}
 
-  discord:
-    webhookURL: ${strToBool(${opt:discord-webhook, 'false'})}
-
-  slack:
-    slackToken: ${strToBool(${opt:slack-token, 'false'})}
+  notifications:
+    discordWebhookUrl: ${opt:discord-webhook, ''}
+    slackWebhookUrl: ${opt:slack-webhook, ''}
 
   validate:
     enabled: ${strToBool(${opt:validate-enabled, 'true'})}
@@ -129,156 +131,594 @@ custom:
     notifyForValidationTopicName: ${opt:notify-topic-name, '${parent:service-name}-notify-for-validation'}
     openPullRequestTopicName: ${opt:pull-request-topic-name, '${parent:service-name}-open-pull-request'}
 
+stepFunctions:
+  ${file(stateMachines/index.yml)}
 
 provider:
   name: aws
   runtime: nodejs12.x
+  memorySize: 128
   stage: ${self:custom.stage}
   region: ${self:custom.region}
   profile: ${self:custom.profile}
+  stackName: ${parent:service-name}-cf-cicd-${self:provider.stage}
   deploymentBucket:
     name: ${parent:service-name}-cicd-deployment
 
-pipelineFailedEvents: &pipelineFailedEvents
-  events:
-    - cloudwatchEvent:
-        event:
-          source:
-            - aws.codepipeline
-          detail-type:
-            - CodePipeline Pipeline Execution State Change
-          resources:
-            - Fn::Join:
-              - ':'
-              - - arn:aws:codepipeline
-                - !Ref AWS::Region
-                - !Ref AWS::AccountId
-                - !Ref Pipeline
-          detail:
-            state:
-              - FAILED
-              - CANCELED
-
 functions:
-  NotifyForValidation:
-    handler: src/functions.notifyForValidation
-    # events:
-    #   - sns:
-    #       arn: !Ref NotifyForValidationTopic
-    #       topicName: ${self:custom.sns.notifyForValidationTopicName}
-    dependsOn:
-      - NotifyForValidationTopic
-
-  OpenPullRequest:
-    handler: src/functions.openPullRequest
-    # events:
-    #   - sns:
-    #       arn: !Ref OpenPullRequestTopic
-    #     topicName: ${self:custom.sns.openPullRequestTopicName}
-    dependsOn:
-      - OpenPullRequestTopic
-
-  NotifySuccess:
-    handler: src/functions.notifySuccess
-
   PRApproved:
     handler: src/bitbucketWebhooks.pullRequestApproved
+    environment:
+      stateMachineArn: !Ref CICDWorkflowStateMachine
+      destinationBranchName: ${self:custom.bitbucket.targetBranch}
+      serverlessEnabled: ${self:custom.serverless.enabled}
+      webpackEnabled: ${self:custom.webpackBuild.enabled}
+      syncS3Enabled: ${self:custom.syncS3.enabled}
+      migrateEnabled: ${self:custom.migrate.enabled}
+      isRDS: ${self:custom.migrate.isRDS}
+      branchPrefix: ${self:custom.bitbucket.branchPrefix}
+      dbDomain: ${self:custom.domain.dbDomain}
+      hostedZone: ${self:custom.domain.hostedZone}
+    iamRoleStatementsName: ${parent:service-name}-pr-approved-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - states:StartExecution
+        Resource:
+          - !Ref CICDWorkflowStateMachine
+    events:
+      - http:
+          path: pull-request-approved
+          method: post
+    dependsOn:
+      - CICDWorkflowStateMachine
+
+
+  # WORKFLOW FUNCTIONS
+  OpenNewBranch:
+    handler: src/bitbucket.openNewBranch
+    memorySize: 512
     timeout: 30
     environment:
-      pipelineName: ${self:custom.pipeline.name}
-      sourceBucketName: !Ref PipelineSourceS3Bucket
-      destinationBranchName: ${self:custom.bitbucket.targetBranch}
-      sourceKey: ${self:custom.source.objectKey}
-    iamRoleStatementsName: ${parent:service-name}-pr-approved-role
+      serviceName: ${parent:service-name}
+      bitbucketWorkspace: ${self:custom.bitbucket.workspace}
+      bitbucketRepository: ${self:custom.bitbucket.repository}
+      bitbucketClientId: ${self:custom.bitbucket.clientId}
+      bitbucketSecret: ${self:custom.bitbucket.secret}
+      branchPrefix: ${self:custom.bitbucket.branchPrefix}
+    layers:
+      - arn:aws:lambda:#{AWS::Region}:553035198032:layer:git-lambda2:6
+
+  DeleteCreatedBranch:
+    handler: src/bitbucket.deleteCreatedBranch
+    environment:
+      bitbucketWorkspace: ${self:custom.bitbucket.workspace}
+      bitbucketRepository: ${self:custom.bitbucket.repository}
+      bitbucketClientId: ${self:custom.bitbucket.clientId}
+      bitbucketSecret: ${self:custom.bitbucket.secret}
+
+  DownloadAndSaveSource:
+    handler: src/bitbucket.downloadAndSaveSource
+    memorySize: 512
+    timeout: 30
+    environment:
+      bitbucketWorkspace: ${self:custom.bitbucket.workspace}
+      bitbucketRepository: ${self:custom.bitbucket.repository}
+      bitbucketClientId: ${self:custom.bitbucket.clientId}
+      bitbucketSecret: ${self:custom.bitbucket.secret}
+      sourceBucketName: !Ref SourceBucket
+    iamRoleStatementsName: ${parent:service-name}-download-and-save-role
     iamRoleStatements:
       - Effect: Allow
         Action:
           - s3:PutObject
         Resource:
-          - arn:aws:s3:::${self:custom.bucket.source}/*
+          - Fn::Join:
+            - ''
+            - - !GetAtt [SourceBucket, Arn]
+              - '/*'
       - Effect: Allow
         Action:
-          - codepipeline:StartPipelineExecution
+          - kms:GenerateDataKey
+          - kms:Decrypt
         Resource:
-          Fn::Join:
-            - ''
-            - - 'arn:aws:codepipeline:us-east-1:'
-              - !Ref AWS::AccountId
-              - ':'
-              - !Ref Pipeline
-    events:
-      - http:
-          path: pull-request-approved
-          method: post
+          - !GetAtt [KMSKey, Arn]
+    dependsOn:
+      - KMSKey
+      - SourceBucket
     layers:
       - arn:aws:lambda:#{AWS::Region}:553035198032:layer:git-lambda2:6
 
-  OpenNewBranch:
-    handler: src/branching.openNewBranch
-    timeout: 300
+  MapPackagingVariables:
+    handler: src/workflow.mapPackagingVariables
+    memorySize: 256
     environment:
-      bitbucketWorkspace: ${opt:bitbucket-workspace}
-      bitbucketRepository: ${opt:bitbucket-repository}
-      bitbucketClientId: ${opt:bitbucket-client-id}
-      bitbucketSecret: ${opt:bitbucket-secret}
-    iamRoleStatementsName: ${parent:service-name}-open-new-branch-role
+      webpackQAArtifactName: ${self:custom.webpackBuild.artifactNameQA}
+      webpackProductionArtifactName: ${self:custom.webpackBuild.artifactNameProduction}
+      serverlessQAArtifactName: ${self:custom.serverless.artifactNameQA}
+      serverlessQAStateName: ${self:custom.serverless.stateQA}
+      serverlessProductionArtifactName: ${self:custom.serverless.artifactNameProduction}
+      serverlessProductionStateName: ${self:custom.serverless.stateProduction}
+    iamRoleStatementsName: ${parent:service-name}-map-packaging-variables-role
     iamRoleStatements:
       - Effect: Allow
         Action:
-          - codepipeline:PutJobSuccessResult
-          - codepipeline:PutJobFailureResult
-        # CANNOT SET THE CUSTOM RESOURCE OR THERE WILL BE A CIRCULAR DEPENDENCY ON CLOUDFORMATION
+          - s3:GetObject
+          - s3:ListBucket
+        Resource:
+          - !GetAtt [PackageBucket, Arn]
+          - Fn::Join:
+            - ''
+            - - !GetAtt [PackageBucket, Arn]
+              - '/*'
+      - Effect: Allow
+        Action:
+          - kms:GenerateDataKey
+          - kms:Decrypt
+        Resource:
+          - !GetAtt [KMSKey, Arn]
+    dependsOn:
+      - KMSKey
+      - PackageBucket
+
+  OpenPR:
+    handler: src/bitbucket.openPR
+    environment:
+      bitbucketWorkspace: ${self:custom.bitbucket.workspace}
+      bitbucketRepository: ${self:custom.bitbucket.repository}
+      bitbucketClientId: ${self:custom.bitbucket.clientId}
+      bitbucketSecret: ${self:custom.bitbucket.secret}
+      slackWebhookUrl: ${self:custom.notifications.slackWebhookUrl}
+      discordWebhookUrl: ${self:custom.notifications.discordWebhookUrl}
+
+  PRFeedback:
+    handler: src/bitbucket.prFeedback
+    events:
+      - http:
+          path: pr-feedback
+          method: post
+
+  SaveBackup:
+    handler: src/workflow.saveBackup
+    iamRoleStatementsName: ${parent:service-name}-save-backup-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:CopyObject
         Resource: '*'
 
-  SaveCFTemplate:
-    handler: src/functions.saveCFTemplate
+  NotifySuccess:
+    handler: src/workflow.notifySuccess
+
+  NotifyError:
+    handler: src/workflow.notifiyError
+    environment:
+      bitbucketWorkspace: ${self:custom.bitbucket.workspace}
+      bitbucketRepository: ${self:custom.bitbucket.repository}
+      slackWebhookUrl: ${self:custom.notifications.slackWebhookUrl}
+      discordWebhookUrl: ${self:custom.notifications.discordWebhookUrl}
+
+  # BUILD AND DEPLOY FUNCTIONS
+  BuildAndDeploySuccessful:
+    handler: src/deploy.success
+
+  CheckIfCFStackExists:
+    handler: src/deploy.checkIfCFStackExists
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-check-cf-exists-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - cloudformation:DescribeStacks
+        Resource: '*'
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+
+  CreateBaseTemplate:
+    handler: src/deploy.createBaseTemplate
+    environment:
+      TEMPLATE: ${fileToString:resources/BaseStack.yml}
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+      CF_QA_ROLE_ARN: ${self:custom.qa.cloudformation.roleArn}
+      CF_PRODUCTION_ROLE_ARN: ${self:custom.cloudformation.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-create-cf-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - cloudformation:CreateStack
+        Resource: '*'
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+
+  IsStackReady:
+    handler: src/deploy.isStackReady
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-check-cf-ready-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - cloudformation:DescribeStacks
+        Resource: '*'
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+
+  UpdateCFTemplate:
+    handler: src/deploy.updateCFTemplate
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+      CF_QA_ROLE_ARN: ${self:custom.qa.cloudformation.roleArn}
+      CF_PRODUCTION_ROLE_ARN: ${self:custom.cloudformation.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-update-cf-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - cloudformation:UpdateStack
+        Resource: '*'
+      - Effect: Allow
+        Action:
+          - s3:GetObject
+          - s3:ListBucket
+        Resource:
+          - !GetAtt [PackageBucket, Arn]
+          - Fn::Join:
+            - ''
+            - - !GetAtt [PackageBucket, Arn]
+              - '/*'
+      - Effect: Allow
+        Action:
+          - kms:GenerateDataKey
+          - kms:Decrypt
+        Resource:
+          - !GetAtt [KMSKey, Arn]
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+    dependsOn:
+      - PackageBucket
+
+  HasMigrationsChecksumChanged:
+    handler: src/deploy/database.checkMigrationsChecksumChanged
     timeout: 30
     environment:
-      bucketName: ${self:custom.bucket.cloudformationTemplatesBackup}
-    iamRoleStatementsName: ${parent:service-name}-save-cf-template-role
+      bitbucketWorkspace: ${self:custom.bitbucket.workspace}
+      bitbucketRepository: ${self:custom.bitbucket.repository}
+      bitbucketClientId: ${self:custom.bitbucket.clientId}
+      bitbucketSecret: ${self:custom.bitbucket.secret}
+      bitbucketTargetBranch: ${self:custom.bitbucket.targetBranch}
+      migrationsFolder: ${self:custom.migrate.migrationsFolder}
+    layers:
+      - arn:aws:lambda:#{AWS::Region}:553035198032:layer:git-lambda2:6
+
+  TakeRDSSnapshot:
+    handler: src/deploy/database.takeRDSSnapshot
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-create-snapshot-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+      - Effect: Allow
+        Action:
+          - rds:CreateDBSnapshot
+        Resource:
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - db
+              - '*'
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - snapshot
+              - '*'
+
+  IsSnapshotReady:
+    handler: src/deploy/database.isSnapshotReady
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-snapshot-ready-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+      - Effect: Allow
+        Action:
+          - rds:DescribeDBSnapshots
+        Resource:
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - db
+              - '*'
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - snapshot
+              - '*'
+
+  RollbackDatabase:
+    handler: src/rollback/database.rollbackDatabase
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-rollback-snapshot-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+      - Effect: Allow
+        Action:
+          - rds:RestoreDBInstanceFromDBSnapshot
+        Resource:
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - db
+              - '*'
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - snapshot
+              - '*'
+
+  IsRollbackInstanceReady:
+    handler:  src/rollback/database.isRollbackInstanceReady
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-database-ready-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+      - Effect: Allow
+        Action:
+          - rds:DescribeDBInstances
+        Resource:
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - db
+              - '*'
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - snapshot
+              - '*'
+
+  UpdateDatabaseCNAME:
+    handler: src/rollback/database.updateDatabaseCNAME
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-update-cname-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+      - Effect: Allow
+        Action:
+          - route53:ChangeResourceRecordSets
+        Resource: '*'
+
+  RenameOldDatabaseInstance:
+    handler: src/rollback/database.renameOldDatabaseInstance
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-rename-old-database-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+      - Effect: Allow
+        Action:
+          - rds:ModifyDBInstance
+        Resource:
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - db
+              - '*'
+
+  RenameNewDatabaseInstance:
+    handler: src/rollback/database.renameNewDatabaseInstance
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-rename-new-database-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+      - Effect: Allow
+        Action:
+          - rds:ModifyDBInstance
+        Resource:
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - db
+              - '*'
+
+  IsDatabaseInstanceDeleted:
+    handler:  src/rollback/database.isDatabaseInstanceDeleted
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-database-deleted-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+      - Effect: Allow
+        Action:
+          - rds:DescribeDBInstances
+        Resource:
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - db
+              - '*'
+
+  DeleteDBInstance:
+    handler: src/rollback/database.deleteDBInstance
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-delete-database-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+      - Effect: Allow
+        Action:
+          - rds:DeleteDBInstance
+        Resource:
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - db
+              - '*'
+
+  DeleteDBSnapshot:
+    handler: src/rollback/database.deleteDBSnapshot
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
+    iamRoleStatementsName: ${parent:service-name}-delete-snapshot-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
+      - Effect: Allow
+        Action:
+          - rds:DeleteDBSnapshot
+        Resource:
+          - Fn::Join:
+            - ':'
+            - - arn
+              - !Ref AWS::Partition
+              - rds
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - snapshot
+              - '*'
+
+  PRMergedOrDeclined:
+    handler: src/bitbucketWebhooks.pullRequestMergedOrDeclined
+    environment:
+      bitbucketWorkspace: ${self:custom.bitbucket.workspace}
+      bitbucketRepository: ${self:custom.bitbucket.repository}
+      branchPrefix: ${self:custom.bitbucket.branchPrefix}
+      destinationBranchName: ${self:custom.bitbucket.targetBranch}
+      slackWebhookUrl: ${self:custom.notifications.slackWebhookUrl}
+      discordWebhookUrl: ${self:custom.notifications.discordWebhookUrl}
+    events:
+      - http:
+          path: pull-request-merged-or-declined
+          method: post
+    iamRoleStatementsName: ${parent:service-name}-pr-merged-declined-role
     iamRoleStatements:
       - Effect: Allow
         Action:
-          - codepipeline:PutJobSuccessResult
-          - codepipeline:PutJobFailureResult
-        # CANNOT SET THE CUSTOM RESOURCE OR THERE WILL BE A CIRCULAR DEPENDENCY ON CLOUDFORMATION
-        Resource: '*'
-
-  PRMerged:
-    handler: src/bitbucketWebhooks.pullRequestMerged
-    environment:
-      discordWebhookUrl: ${self:custom.discord.webhookURL}
-      pipelineName: ${self:custom.pipeline.name}
-    events:
-      - http:
-          path: pull-request-merged
-          method: post
-
-  PRDeclined:
-    handler: src/bitbucketWebhooks.pullRequestDeclined
-    environment:
-      discordWebhookUrl: ${self:custom.discord.webhookURL}
-      pipelineName: ${self:custom.pipeline.name}
-    events:
-      - http:
-          path: pull-request-declined
-          method: post
+          - states:SendTaskSuccess
+          - states:SendTaskFailure
+        Resource:
+          - Fn::Join:
+            - ':'
+            - - arn:aws:states
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - stateMachine
+              - ${self:custom.stateMachine.workflow}
 
   RollbackCloudformation:
     handler: src/rollback.cloudformation
-    <<: *pipelineFailedEvents
-
-  # RollbackDatabase:
-  #   handler: src/rollback.database
-  #   <<: *pipelineFailedEvents
 
   NotifyFailed:
     handler: src/rollback.notifyFailed
-    <<: *pipelineFailedEvents
 
+  NotifySuccessToStepFunction:
+    handler: src/workflow.notifySuccessToStepFunction
+    iamRoleStatementsName: ${parent:service-name}-success-to-func-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - states:SendTaskSuccess
+        Resource:
+          - Fn::Join:
+            - ':'
+            - - arn:aws:states
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - stateMachine
+              - ${self:custom.stateMachine.workflow}
+
+  NotifyFailToStepFunction:
+    handler: src/workflow.notifyFailToStepFunction
+    iamRoleStatementsName: ${parent:service-name}-fail-to-func-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - states:SendTaskFailure
+        Resource:
+          - Fn::Join:
+            - ':'
+            - - arn:aws:states
+              - !Ref AWS::Region
+              - !Ref AWS::AccountId
+              - stateMachine
+              - ${self:custom.stateMachine.workflow}
 
 resources:
-  # CONDITIONS
+  # Conditions
   - ${file(resources/Conditions.yml)}
 
   # KMS
@@ -293,7 +733,7 @@ resources:
   # ROLES
   - ${file(resources/roles/CloudformationRole.yml)}
   - ${file(resources/roles/CodebuildRole.yml)}
-  - ${file(resources/roles/PipelineRole.yml)}
+  - ${file(resources/roles/StateMachineRole.yml)}
 
   # CODEBUILD PROJECTS
   - ${file(resources/codebuild/ServerlessBuild.yml)}
@@ -303,4 +743,4 @@ resources:
   - ${file(resources/codebuild/SyncPackageToS3.yml)}
 
   # PIPELINE
-  - ${file(resources/Pipeline.yml)}
+  # - ${file(resources/Pipeline.yml)}

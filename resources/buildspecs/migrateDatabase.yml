@@ -5,15 +5,12 @@ phases:
     runtime-versions:
       nodejs: 10
     commands:
-      - npm install --silent --no-progress -g serverless@$SERVERLESS_VERSION
-      - npm install --silent
       - |
         ${self:custom.migrate.install}
+      - npm install --silent --no-progress -g serverless@$SERVERLESS_VERSION
+      - npm install --silent
   build:
     commands:
-      # SETTING VARIABLES THAT SLS WILL USE
-      - export StackName="$STACK_NAME"
-      
       # ASSUMING QA ROLE IF ONE QA TO DO EVERYTHING ON BEHALF OF THAT USER
       - |
         if [ "$ENVIRONMENT" = "qa" ]
@@ -22,6 +19,7 @@ phases:
         fi
 
       - ${self:custom.migrate.command}
+
 cache:
   paths:
     - 'node_modules/**/*'

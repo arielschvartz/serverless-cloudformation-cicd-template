@@ -17,16 +17,13 @@ const {
 } = require('./lib/bitbucket');
 
 const parameters = {
-  'qa-branch-name': {
-    required: false,
-  },
   'production-branch-name': {
     required: false,
   },
-  'bitbucket-workspace': {
+  'bitbucket-repository': {
     required: true,
   },
-  'bitbucket-repository': {
+  'bitbucket-workspace': {
     required: true,
   },
   'bitbucket-client-id': {
@@ -35,11 +32,11 @@ const parameters = {
   'bitbucket-secret': {
     required: true,
   },
-  'qa-stage-name': {
-    required: false,
-  },
   'production-account-id': {
     required: true,
+  },
+  'qa-stage-name': {
+    required: false,
   },
   'qa-account-id': {
     required: true,
@@ -50,19 +47,16 @@ const parameters = {
   'qa-role-arn': {
     required: false,
   },
-  'qa-cloudformation-role-name': {
-    required: false,
-  },
   'qa-cloudformation-role-arn': {
     required: false,
   },
-  'pipeline-name': {
+  'state-machine-name': {
     required: false,
   },
-  'pipeline-role-name': {
+  'state-machine-role-name': {
     required: false,
   },
-  'pipeline-policy-name': {
+  'state-machine-policy-name': {
     required: false,
   },
   'codebuild-role-name': {
@@ -71,49 +65,55 @@ const parameters = {
   'codebuild-policy-name': {
     required: false,
   },
-  'cloudformation-enabled': {
-    required: false,
-  },
-  'cloudformation-stack-name': {
-    required: true,
-  },
+  // 'cloudformation-enabled': {
+  //   required: false,
+  // },
   'cloudformation-role-name': {
     required: false,
   },
   'cloudformation-policy-name': {
     required: false,
   },
-  'artifacts-bucket-name': {
+  'package-bucket-name': {
     required: false,
   },
   'source-bucket-name': {
     required: false,
   },
-  'deployment-bucket-name': {
-    required: false,
-  },
   'cloudformation-templates-backup-bucket-name': {
-    required: false,
-  },
-  'build-package-qa-command': {
-    required: false,
-  },
-  'build-package-production-command': {
-    required: false,
-  },
-  'build-package-output-folder': {
-    required: false,
-  },
-  'build-prebuild-command': {
     required: false,
   },
   'serverless-enabled': {
     required: false,
   },
-  'sync-s3-enabled': {
+  'serverless-build-package-qa-command': {
     required: false,
   },
-  'sync-s3-build-method': {
+  'serverless-build-package-production-command': {
+    required: false,
+  },
+  'serverless-build-package-output-folder': {
+    required: false,
+  },
+  'serverless-build-prebuild-command': {
+    required: false,
+  },
+  'webpack-enabled': {
+    required: false,
+  },
+  'webpack-build-package-qa-command': {
+    required: false,
+  },
+  'webpack-build-package-production-command': {
+    required: false,
+  },
+  'webpack-build-package-output-folder': {
+    required: false,
+  },
+  'webpack-build-prebuild-command': {
+    required: false,
+  },
+  'sync-s3-enabled': {
     required: false,
   },
   'sync-s3-root-folder': {
@@ -125,7 +125,13 @@ const parameters = {
   'sync-s3-bucket-name': {
     required: false,
   },
+  'sync-s3-source': {
+    required: false,
+  },
   'migrate-database-enabled': {
+    required: false,
+  },
+  'migrations-folder': {
     required: false,
   },
   'migrate-install-extra': {
@@ -134,7 +140,16 @@ const parameters = {
   'migrate-database-command': {
     required: false,
   },
-  'rds-database-enabled': {
+  'rds-database': {
+    required: false,
+  },
+  'rds-domain': {
+    required: false,
+  },
+  'hosted-zone': {
+    required: false,
+  },
+  'hosted-zone-id': {
     required: false,
   },
   'validate-enabled': {
@@ -143,7 +158,7 @@ const parameters = {
   'discord-webhook': {
     required: false,
   },
-  'slack-token': {
+  'slack-webhook': {
     required: false,
   },
   'pull-request-enabled': {
@@ -259,7 +274,11 @@ class ServerlessCloudfrontCICDTemplate {
 
     let stackName;
     if (cicdConfiguration) {
-
+      ({
+        provider: {
+          stackName,
+        }
+      } = info);
     } else {
       ({
         custom: {
@@ -475,14 +494,9 @@ class ServerlessCloudfrontCICDTemplate {
           functionName: 'PRApproved',
         },
         {
-          description: 'CICD PullRequest Merged',
-          events: ['pullrequest:fulfilled'],
-          functionName: 'PRMerged',
-        },
-        {
-          description: 'CICD PullRequest Declined',
-          events: ['pullrequest:rejected'],
-          functionName: 'PRDeclined',
+          description: 'CICD PullRequest Merged/Declined',
+          events: ['pullrequest:fulfilled', 'pullrequest:rejected'],
+          functionName: 'PRMergedOrDeclined',
         },
       ];
 

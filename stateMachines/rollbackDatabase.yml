@@ -1,0 +1,318 @@
+name: ${self:custom.stateMachine.rollbackDatabase}
+id: RollbackDatabaseStateMachine
+role: !GetAtt [StateMachineRole, Arn]
+definition:
+  Comment: |
+    State machine for rolling back database based on the snapshot identifier.
+  StartAt: HasSnapshot
+  States:
+    HasSnapshot:
+      Type: Choice
+      Choices:
+        - Variable: $.databaseOptions.isRDS
+          BooleanEquals: false
+          Next: NotifySuccess
+        - Variable: $.dbDomain
+          BooleanEquals: false
+          Next: NotifySuccess
+        - Variable: $.hostedZoneId
+          BooleanEquals: false
+          Next: NotifySuccess
+        - Variable: $.snapshotIdentifier
+          BooleanEquals: false
+          Next: NotifySuccess
+      Default: RollbackDatabase
+
+    RollbackDatabase:
+      Type: Task
+      Resource: !GetAtt [RollbackDatabaseLambdaFunction, Arn]
+      ResultPath: null
+      Next: WaitSnapshot
+      Parameters:
+        Payload:
+          environment.$: $.environment
+          rdsIdentifier.$: $.rdsIdentifier
+          snapshotIdentifier.$: $.snapshotIdentifier
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    WaitSnapshot:
+      Type: Wait
+      Seconds: 150
+      Next: IsRollbackInstanceReady
+
+    IsRollbackInstanceReady:
+      Type: Task
+      Resource: !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
+      ResultPath: $.databaseURL
+      Next: UpdateDatabaseCNAME
+      Parameters:
+        Payload:
+          environment.$: $.environment
+          rdsIdentifier.$: $.rdsIdentifier
+          snapshotIdentifier.$: $.snapshotIdentifier
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - DatabaseInstanceNotReadyError
+          ResultPath: null
+          Next: WaitSnapshot
+        - ErrorEquals:
+            - describeDBInstances
+          ResultPath: $.errorInfo
+          Next: NotifyError
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    UpdateDatabaseCNAME:
+      Type: Task
+      Resource: !GetAtt [UpdateDatabaseCNAMELambdaFunction, Arn]
+      Next: RenameOldDB
+      ResultPath: null
+      Parameters:
+        Payload:
+          environment.$: $.environment
+          databaseURL.$: $.databaseURL
+          dbDomain.$: $.dbDomain
+          hostedZoneId.$: $.hostedZoneId
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    RenameOldDB:
+      Type: Task
+      Resource: !GetAtt [RenameOldDatabaseInstanceLambdaFunction, Arn]
+      Next: WaitOldDBRenaming
+      ResultPath: null
+      Parameters:
+        Payload:
+          environment.$: $.environment
+          rdsIdentifier.$: $.rdsIdentifier
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    WaitOldDBRenaming:
+      Type: Wait
+      Seconds: 30
+      Next: IsOldDbRenamed
+
+    IsOldDbRenamed:
+      Type: Task
+      Resource: !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
+      Next: RenameNewDB
+      ResultPath: null
+      Parameters:
+        Payload:
+          environment.$: $.environment
+          rdsIdentifier.$: $.rdsIdentifier
+          old: true
+          snapshotIdentifier.$: $.snapshotIdentifier
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - DatabaseInstanceNotReadyError
+          ResultPath: null
+          Next: WaitOldDBRenaming
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    RenameNewDB:
+      Type: Task
+      Resource: !GetAtt [RenameNewDatabaseInstanceLambdaFunction, Arn]
+      Next: DeleteDBInstance
+      ResultPath: null
+      Parameters:
+        Payload:
+          environment.$: $.environment
+          rdsIdentifier.$: $.rdsIdentifier
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    DeleteDBInstance:
+      Type: Task
+      Resource: !GetAtt [DeleteDBInstanceLambdaFunction, Arn]
+      Next: WaitDelete
+      ResultPath: null
+      Parameters:
+        Payload:
+          environment.$: $.environment
+          rdsIdentifier.$: $.rdsIdentifier
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    WaitDelete:
+      Type: Wait
+      Seconds: 60
+      Next: IsDatabaseInstanceDeleted
+
+    IsDatabaseInstanceDeleted:
+      Type: Task
+      Resource: !GetAtt [IsDatabaseInstanceDeletedLambdaFunction, Arn]
+      ResultPath: null
+      Next: DeleteDBSnapshot
+      Parameters:
+        Payload:
+          environment.$: $.environment
+          rdsIdentifier.$: $.rdsIdentifier
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - DatabaseInstanceNotDeleted
+          ResultPath: null
+          Next: WaitDelete
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    DeleteDBSnapshot:
+      Type: Task
+      Resource: !GetAtt [DeleteDBSnapshotLambdaFunction, Arn]
+      Next: NotifySuccess
+      ResultPath: null
+      Parameters:
+        Payload:
+          environment.$: $.environment
+          snapshotIdentifier.$: $.snapshotIdentifier
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    NotifySuccess:
+      Type: Task
+      Resource: !GetAtt [NotifySuccessToStepFunctionLambdaFunction, Arn]
+      Parameters:
+        Payload:
+          taskToken.$: $.taskToken
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - States.Timeout
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Next: RollbackSuccessful
+
+    RollbackSuccessful:
+      Type: Succeed
+
+    NotifyError:
+      Type: Task
+      Resource: !GetAtt [NotifyFailToStepFunctionLambdaFunction, Arn]
+      Parameters:
+        Payload:
+          errorInfo.$: $.errorInfo
+          taskToken.$: $.taskToken
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - States.Timeout
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Next: RollbackFailed
+
+    RollbackFailed:
+      Type: Fail

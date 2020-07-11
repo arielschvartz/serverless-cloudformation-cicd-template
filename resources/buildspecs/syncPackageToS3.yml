@@ -8,8 +8,6 @@ phases:
        - echo "Installed."
   build:
     commands:
-      - aws s3 sync ${self:custom.syncS3.rootFolder} s3://$BUCKET_NAME
-
       # ASSUMING QA ROLE IF ONE QA TO DO EVERYTHING ON BEHALF OF THAT USER
       - |
         if [ "$ENVIRONMENT" = "qa" ]
@@ -17,78 +15,109 @@ phases:
           ${escapedFileToString:resources/buildspecs/assumeQARole.sh}
         fi
 
+      - cd ${self:custom.syncS3.rootFolder}
+      - aws s3 sync . s3://$BUCKET_NAME
+
       # SETTING GZIP AND CACHE FOR HTML FILES
       - |
-        unset file
-        for file in *.html
-        do
-          echo $file
-          if [ "$file" = "*.html" ]
-          then
-            echo "filename is null: $file"
-          else
-            aws s3api put-object --bucket $BUCKET_NAME --key "$file"  --cache-control "max-age=0" --content-encoding "gzip" --content-type "text/html" --body "./$file"
-          fi
-        done
+        if [ $SHOULD_GZIP = "true" ]; then
+          unset file
+          for file in *.html
+          do
+            echo $file
+            if [ "$file" = "*.html" ]
+            then
+              echo "filename is null: $file"
+            else
+              aws s3api put-object --bucket $BUCKET_NAME --key "$file"  --cache-control "max-age=0" --content-encoding "gzip" --content-type "text/html" --body "./$file"
+            fi
+          done
+        else
+          unset file
+          for file in *.html
+          do
+            echo $file
+            if [ "$file" = "*.html" ]
+            then
+              echo "filename is null: $file"
+            else
+              aws s3api put-object --bucket $BUCKET_NAME --key "$file"  --cache-control "max-age=0" --content-type "text/html" --body "./$file"
+            fi
+          done
+        fi
 
       # SETTING GZIP ENCODING FOR OTHER FILES
       - |
-        unset file
-        for file in *.js
-        do
-          echo $file
-          if [ "$file" = "*.js" ]
-          then
-            echo "filename is null: $file"
-          else
-            aws s3api put-object --bucket $BUCKET_NAME --key "$file" --content-encoding "gzip" --content-type "application/javascript" --body "./$file"
-          fi
-        done
+        if [ $SHOULD_GZIP = "true" ]; then
+          unset file
+          for file in *.js
+          do
+            echo $file
+            if [ "$file" = "*.js" ]
+            then
+              echo "filename is null: $file"
+            else
+              aws s3api put-object --bucket $BUCKET_NAME --key "$file" --content-encoding "gzip" --content-type "application/javascript" --body "./$file"
+            fi
+          done
+        fi
+
       - |
-        unset file
-        for file in *.css
-        do
-          echo $file
-          if [ "$file" = "*.css" ]
-          then
-            echo "filename is null: $file"
-          else
-            aws s3api put-object --bucket $BUCKET_NAME --key "$file" --content-encoding "gzip" --content-type "text/css" --body "./$file"
-          fi
-        done
+        if [ $SHOULD_GZIP = "true" ]; then
+          unset file
+          for file in *.css
+          do
+            echo $file
+            if [ "$file" = "*.css" ]
+            then
+              echo "filename is null: $file"
+            else
+              aws s3api put-object --bucket $BUCKET_NAME --key "$file" --content-encoding "gzip" --content-type "text/css" --body "./$file"
+            fi
+          done
+        fi
+
       - |
-        unset file
-        for file in *.svg
-        do
-          echo $file
-          if [ "$file" = "*.svg" ]
-          then
-            echo "filename is null: $file"
-          else
-            aws s3api put-object --bucket $BUCKET_NAME --key "$file" --content-encoding "gzip" --content-type "image/svg+xml" --body "./$file"
-          fi
-        done
+        if [ $SHOULD_GZIP = "true" ]; then
+          unset file
+          for file in *.svg
+          do
+            echo $file
+            if [ "$file" = "*.svg" ]
+            then
+              echo "filename is null: $file"
+            else
+              aws s3api put-object --bucket $BUCKET_NAME --key "$file" --content-encoding "gzip" --content-type "image/svg+xml" --body "./$file"
+            fi
+          done
+        fi
+
       - |
-        unset file
-        for file in *.ttf
-        do
-          echo $file
-          if [ "$file" = "*.ttf" ]
-          then
-            echo "filename is null: $file"
-          else
-            aws s3api put-object --bucket $BUCKET_NAME --key "$file" --content-encoding "gzip" --content-type "application/x-font-ttf" --body "./$file"
-          fi
-        done
+        if [ $SHOULD_GZIP = "true" ]; then
+          unset file
+          for file in *.ttf
+          do
+            echo $file
+            if [ "$file" = "*.ttf" ]
+            then
+              echo "filename is null: $file"
+            else
+              aws s3api put-object --bucket $BUCKET_NAME --key "$file" --content-encoding "gzip" --content-type "application/x-font-ttf" --body "./$file"
+            fi
+          done
+        fi
+
       - |
-        unset file
-        for file in *.otf
-        do
-          echo $file
-          if [ "$file" = "*.otf" ]
-          then
-            echo "filename is null: $file"
-          else
-            aws s3api put-object --bucket $BUCKET_NAME --key "$file" --content-encoding "gzip" --content-type "application/x-font-otf" --body "./$file"
-          fi
-        done
+        if [ $SHOULD_GZIP = "true" ]; then
+          unset file
+          for file in *.otf
+          do
+            echo $file
+            if [ "$file" = "*.otf" ]
+            then
+              echo "filename is null: $file"
+            else
+              aws s3api put-object --bucket $BUCKET_NAME --key "$file" --content-encoding "gzip" --content-type "application/x-font-otf" --body "./$file"
+            fi
+          done
+        fi

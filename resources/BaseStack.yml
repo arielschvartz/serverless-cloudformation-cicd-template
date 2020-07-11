@@ -3,8 +3,8 @@ Parameters:
     Description: The name of the description bucket
     Type: String
 
-  RoleName:
-    Description: The Name from the Role that will manage the cloudformation stack
+  RoleArn:
+    Description: The ARN from the Role that will manage the cloudformation stack
     Type: String
 
 Resources:
@@ -27,13 +27,7 @@ Resources:
             Effect: Allow
             Principal:
               AWS:
-                # IMPORTANT TO KEEP THIS FORMAT SO THE INLINE YML LOADER CAN LOAD THE FILE
-                - Fn::Join:
-                  - ''
-                  - - 'arn:aws:iam::'
-                    - Ref: AWS::AccountId
-                    - ':role/'
-                    - Ref: RoleName
+                - Ref: RoleArn
             Action:
               - s3:*
             Resource:

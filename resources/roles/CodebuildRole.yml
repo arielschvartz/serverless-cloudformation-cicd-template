@@ -28,15 +28,24 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
+              - cloudformation:ListStackResources
+            Resource:
+              - '*'
+          - Effect: Allow
+            Action:
               - codepipeline:PutJobSuccessResult
               - codepipeline:PutJobFailureResult
             Resource:
               - '*'
           - Effect: Allow
             Action:
+              - route53:ListHostedZonesByName
+            Resource:
+              - '*'
+          - Effect: Allow
+            Action:
               - sts:AssumeRole
             Resource:
-              - !GetAtt [PipelineRole, Arn]
               - ${self:custom.qa.roleArn}
           - Effect: Allow
             Action:
@@ -45,8 +54,8 @@ Resources:
               - s3:GetObject
               - s3:ListBucket
             Resource:
-              - arn:aws:s3:::${self:custom.bucket.artifacts}
-              - arn:aws:s3:::${self:custom.bucket.artifacts}/*
+              - arn:aws:s3:::${self:custom.bucket.package}
+              - arn:aws:s3:::${self:custom.bucket.package}/*
           - Effect: Allow
             Action:
               - logs:CreateLogGroup

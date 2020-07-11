@@ -1,0 +1,36 @@
+StartAt: ShouldSyncS3Choice
+States:
+  ShouldSyncS3Choice:
+    Type: Choice
+    Choices:
+      - Variable: $.s3Options.enabled
+        BooleanEquals: true
+        Next: SyncS3
+    Default: S3SuccessState
+
+  SyncS3:
+    Type: Task
+    Resource: arn:aws:states:::codebuild:startBuild.sync
+    Next: S3SuccessState
+    ResultPath: null
+    Parameters:
+      ProjectName: !Ref SyncPackageToS3Project
+      EnvironmentVariablesOverride:
+        - Name: ENVIRONMENT
+          Type: PLAINTEXT
+          Value.$: $.environment
+        - Name: BUCKET_NAME
+          Type: PLAINTEXT
+          Value.$: $.packages.serverless.syncS3BucketName
+        - Name: SHOULD_GZIP
+          Type: PLAINTEXT
+          Value: ${self:custom.syncS3.gzip}
+      SourceTypeOverride: S3
+      SourceLocationOverride.$:
+        Fn::If:
+          - SyncToS3FromSource
+          - $.source.location
+          - $.packages.serverless.package.Location
+
+  S3SuccessState:
+    Type: Succeed

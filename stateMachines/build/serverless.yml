@@ -1,0 +1,28 @@
+StartAt: IsServerlessChoice
+States:
+  IsServerlessChoice:
+    Type: Choice
+    Choices:
+      - Variable: $.isServerless
+        BooleanEquals: true
+        Next: PackageServerlessAndSaveToS3
+    Default: SetServerlessOutputToNull
+
+  SetServerlessOutputToNull:
+    Type: Pass
+    Next: ServerlessSuccessState
+    Result: false
+    ResultPath: $
+
+  PackageServerlessAndSaveToS3:
+    Type: Task
+    Resource: arn:aws:states:::codebuild:startBuild.sync
+    Next: ServerlessSuccessState
+    ResultPath: $
+    Parameters:
+      ProjectName: !Ref ServerlessBuildProject
+      SourceTypeOverride: S3
+      SourceLocationOverride.$: $.source.location
+
+  ServerlessSuccessState:
+    Type: Succeed
