@@ -49,6 +49,16 @@ Resources:
               - ${self:custom.qa.roleArn}
           - Effect: Allow
             Action:
+              - rds:DescribeDBInstances
+              - secretsmanager:GetSecretValue
+              - lambda:GetLayerVersion
+              - lambda:ListLayers
+              - lambda:PublishLayerVersion
+              - lambda:UpdateFunctionConfiguration
+              - cognito-idp:ListUserPools
+            Resource: '*'
+          - Effect: Allow
+            Action:
               - s3:PutObject
               - s3:GetBucketPolicy
               - s3:GetObject
