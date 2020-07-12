@@ -90,6 +90,11 @@ Resources:
             Principal:
               AWS:
                 - !GetAtt [CodebuildRole, Arn]
+                - Fn::Join:
+                  - ':'
+                  - - 'arn:aws:iam:'
+                    - !Ref AWS::AccountId
+                    - role/${parent:service-name}-save-backup-role
             Resource:
               - arn:aws:s3:::${self:custom.bucket.cloudformationTemplatesBackup}
               - arn:aws:s3:::${self:custom.bucket.cloudformationTemplatesBackup}/*
