@@ -118,6 +118,11 @@ definition:
             Value.$: $.packages.serverless.artifactDirectoryName
         SourceTypeOverride: S3
         SourceLocationOverride.$: $.packages.serverless.package.Location
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
 
     UpdateCFTemplate:
       Type: Task

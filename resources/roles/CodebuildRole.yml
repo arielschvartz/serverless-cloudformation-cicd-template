@@ -13,6 +13,8 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
 
   CodebuildRolePolicy:
     DependsOn:
@@ -63,9 +65,7 @@ Resources:
               - s3:GetBucketPolicy
               - s3:GetObject
               - s3:ListBucket
-            Resource:
-              - arn:aws:s3:::${self:custom.bucket.package}
-              - arn:aws:s3:::${self:custom.bucket.package}/*
+            Resource: '*'
           - Effect: Allow
             Action:
               - logs:CreateLogGroup
