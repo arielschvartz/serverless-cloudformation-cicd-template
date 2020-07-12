@@ -118,11 +118,17 @@ export const mapPackagingVariables = async (event, context) => {
 
 const backupArtifact = async ({ location, name }) => {
   const extension = location.split('.').pop();
+  const source = `/${location.replace('arn:aws:s3:::', '')}`;
+  const key = `${name}.${extension}`;
+
+  console.log("BUCKET", process.env.bucket);
+  console.log("SOURCE", source);
+  console.log("KEY", key);
 
   return s3.copyObject({
     Bucket: process.env.bucket,
-    CopySource: `/${location.replace('arn:aws:s3:::', '')}`,
-    Key: `${name}.${extension}`,
+    CopySource: source,
+    Key: key,
   }).promise();
 }
 
