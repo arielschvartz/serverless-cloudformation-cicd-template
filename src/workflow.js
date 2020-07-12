@@ -121,7 +121,7 @@ const backupArtifact = async ({ location, name }) => {
 
   return s3.copyObject({
     Bucket: process.env.bucket,
-    CopySource: location,
+    CopySource: `/${location.replace('arn:aws:s3:::', '')}`,
     Key: `${name}.${extension}`,
   }).promise();
 }
