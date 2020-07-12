@@ -117,14 +117,13 @@ export const mapPackagingVariables = async (event, context) => {
 }
 
 const backupArtifact = async ({ location, name }) => {
-  const bucketName = location.split('/')[0].split(':::')[1];
   const extension = location.split('.').pop();
 
   return s3.copyObject({
-    Bucket: bucketName,
+    Bucket: process.env.bucket,
     CopySource: location,
-    Key: `${name}.extension`,
-  })
+    Key: `${name}.${extension}`,
+  }).promise();
 }
 
 export const saveBackup = async (event, context) => {

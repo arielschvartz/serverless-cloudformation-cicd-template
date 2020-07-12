@@ -289,9 +289,16 @@ functions:
         Action:
           - s3:CopyObject
         Resource: '*'
+    environment:
+      bucket: ${self:custom.bucket.cloudformationTemplatesBackup}
 
   NotifySuccess:
     handler: src/workflow.notifySuccess
+    environment:
+      bitbucketWorkspace: ${self:custom.bitbucket.workspace}
+      bitbucketRepository: ${self:custom.bitbucket.repository}
+      slackWebhookUrl: ${self:custom.notifications.slackWebhookUrl}
+      discordWebhookUrl: ${self:custom.notifications.discordWebhookUrl}
 
   NotifyError:
     handler: src/workflow.notifiyError
