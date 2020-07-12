@@ -47,7 +47,7 @@ custom:
 
   stateMachine:
     name: ${opt:state-machine-name, '${parent:service-name}-cicd'}
-    roleName: ${opt:state-machine-role-name, '${self:custom.stateMachine.name}-cicd-state-machine-role'}
+    roleName: ${opt:state-machine-role-name, '${self:custom.stateMachine.name}-state-machine-role'}
     policyName: ${opt:state-machine-policy-name, '${self:custom.stateMachine.name}-state-machine-policy'}
 
     workflow: ${self:custom.stateMachine.name}-workflow
