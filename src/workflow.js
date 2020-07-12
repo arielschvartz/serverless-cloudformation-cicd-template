@@ -142,7 +142,7 @@ export const saveBackup = async (event, context) => {
     for (const t of ['state', 'package']) {
       for (const e of ['qa', 'production']) {
         let {
-          location,
+          Location: location,
         } = packages[e]['serverless'][t];
 
         if (t === 'state') {
@@ -157,7 +157,7 @@ export const saveBackup = async (event, context) => {
   if (isWebpack) {
     for (const e of ['qa', 'production']) {
       let {
-        location,
+        Location: location,
       } = packages[e]['webpack'];
 
       await backupArtifact({ location, name: `webpack-package-${e}-backup` });
