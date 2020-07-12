@@ -113,12 +113,12 @@ custom:
     migrationsFolder: ${opt:migrations-folder, 'migrations'}
     projectName: ${parent:service-name}-codebuild-migrate-project
     install: ${opt:pre-migrate-command, "echo 'install'"}
-    command: ${opt:migrate-database-command}
+    command: ${opt:migrate-database-command, "echo 'migrate'"}
     isRDS: ${strToBool(${opt:rds-database, 'true'})}
 
   domain:
-    hostedZone: ${opt:hosted-zone}
-    dbDomain: ${opt:rds-domain}
+    hostedZone: ${strToBool(${opt:hosted-zone, 'false'})}
+    dbDomain: ${strToBool(${opt:rds-domain, 'false'})}
 
   notifications:
     discordWebhookUrl: ${opt:discord-webhook, ''}
