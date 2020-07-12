@@ -136,7 +136,7 @@ stepFunctions:
 provider:
   name: aws
   runtime: nodejs12.x
-  memorySize: 128
+  memorySize: 512
   stage: ${self:custom.stage}
   region: ${self:custom.region}
   profile: ${self:custom.profile}
@@ -348,6 +348,7 @@ functions:
 
   UpdateCFTemplate:
     handler: src/deploy.updateCFTemplate
+    timeout: 30
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
       CF_QA_ROLE_ARN: ${self:custom.qa.cloudformation.roleArn}
