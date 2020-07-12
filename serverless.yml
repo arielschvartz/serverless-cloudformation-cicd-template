@@ -23,7 +23,11 @@ custom:
   webpack:
     webpackConfig: 'webpack.config.js' # Name of webpack configuration file
     includeModules: false # Node modules configuration for packaging
-    packager: 'yarn' # Packager that will be used to package your external modules
+    packager: 'yarn' # Packager that will be used to package your external module
+
+  kms:
+    id: ${parent:service-name}-cicd-kms-key
+    alias: alias/${self:custom.kms.id}
 
   bitbucket:
     targetBranch: ${opt:production-branch-name, 'master'}
@@ -117,8 +121,8 @@ custom:
     isRDS: ${strToBool(${opt:rds-database, 'true'})}
 
   domain:
-    hostedZone: ${strToBool(${opt:hosted-zone, 'false'})}
-    dbDomain: ${strToBool(${opt:rds-domain, 'false'})}
+    hostedZone: ${opt:hosted-zone, ${strToBool('false')}}
+    dbDomain: ${opt:rds-domain, ${strToBool('false')}}
 
   notifications:
     discordWebhookUrl: ${opt:discord-webhook, ''}

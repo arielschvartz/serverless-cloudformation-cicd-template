@@ -7,7 +7,7 @@ Resources:
       EnableKeyRotation: true
       KeyPolicy:
         Version: "2012-10-17"
-        Id: pipeline-kms-key
+        Id: ${self:custom.kms.id}
         Statement:
           - Sid: Allows admin of the key
             Effect: Allow
@@ -33,5 +33,5 @@ Resources:
   KMSAlias:
     Type: AWS::KMS::Alias
     Properties:
-      AliasName: !Sub alias/codepipeline-crossaccounts
+      AliasName: ${self:custom.kms.alias}
       TargetKeyId: !Ref KMSKey
