@@ -28,6 +28,11 @@ Resources:
                   - - 'arn:aws:iam:'
                     - !Ref AWS::AccountId
                     - role/${parent:service-name}-map-packaging-variables-role
+                - Fn::Join:
+                  - ':'
+                  - - 'arn:aws:iam:'
+                    - !Ref AWS::AccountId
+                    - role/${parent:service-name}-save-backup-role
                 - ${self:custom.qa.roleArn}
                 - ${self:custom.qa.cloudformation.roleArn}
             Resource:
