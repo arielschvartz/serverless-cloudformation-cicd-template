@@ -237,12 +237,13 @@ definition:
     SaveBackup:
       Type: Task
       Resource: !GetAtt [SaveBackupLambdaFunction, Arn]
+      ResultPath: null
+      Next: NotifySuccess
       Parameters:
         Payload:
           isServerless.$: $.isServerless
           isWebpack.$: $.isWebpack
           packages.$: $.packages
-      ResultPath: null
       Retry:
         - ErrorEquals:
             - Lambda.ServiceException
@@ -256,7 +257,6 @@ definition:
             - States.ALL
           ResultPath: $.errorInfo
           Next: NotifyError
-      Next: NotifySuccess
 
     NotifySuccess:
       Type: Task

@@ -331,6 +331,7 @@ functions:
       - Effect: Allow
         Action:
           - cloudformation:CreateStack
+          - iam:PassRole
         Resource: '*'
       - Effect: Allow
         Action: sts:AssumeRole
@@ -362,6 +363,7 @@ functions:
       - Effect: Allow
         Action:
           - cloudformation:UpdateStack
+          - iam:PassRole
         Resource: '*'
       - Effect: Allow
         Action:

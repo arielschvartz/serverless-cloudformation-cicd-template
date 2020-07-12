@@ -128,12 +128,14 @@ const backupArtifact = async ({ location, name }) => {
 }
 
 export const saveBackup = async (event, context) => {
+  console.log("EVENT", event);
+
   const {
     Payload: {
       isServerless,
       isWebpack,
       packages,
-    }
+    } = {},
   } = event;
 
   if (isServerless) {
@@ -147,13 +149,19 @@ export const saveBackup = async (event, context) => {
           location = `${location}/serverless-state.json`;
         }
 
-        await saveBackup({ location, name: `${t}-${e}-backup` });
+        await backupArtifact({ location, name: `serverless-${t}-${e}-backup` });
       }
     }
   }
 
   if (isWebpack) {
+    for (const e of ['qa', 'production']) {
+      let {
+        location,
+      } = packages[e]['webpack'];
 
+      await backupArtifact({ location, name: `webpack-package-${e}-backup` });
+    }
   }
 }
 
