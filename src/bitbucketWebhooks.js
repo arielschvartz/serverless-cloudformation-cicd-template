@@ -177,7 +177,9 @@ export const pullRequestMergedOrDeclined = async (event, context) => {
     } else if (eventKey === 'pullrequest:fulfilled') {
       await stepfunctions.sendTaskSuccess({
         taskToken,
-        output: 'pullrequest:fulfilled',
+        output: JSON.stringify({
+          action: 'pullrequest:fulfilled'
+        }),
       }).promise();
 
       await notify({
