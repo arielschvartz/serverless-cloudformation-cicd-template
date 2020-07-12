@@ -1,6 +1,6 @@
 name: ${self:custom.stateMachine.rollbackDatabase}
 id: RollbackDatabaseStateMachine
-role: !GetAtt [StateMachineRole, Arn]
+role: !GetAtt [RollbackDatabaseStateMachineRole, Arn]
 definition:
   Comment: |
     State machine for rolling back database based on the snapshot identifier.

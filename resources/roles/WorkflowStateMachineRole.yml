@@ -1,0 +1,77 @@
+Resources:
+  WorkflowStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ${self:custom.stateMachine.workflowRoleName}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+
+  WorkflowStateMachineRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles:
+        - !Ref WorkflowStateMachineRole
+      PolicyName: ${self:custom.stateMachine.policyName}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource:
+              - !GetAtt [OpenNewBranchLambdaFunction, Arn]
+              - !GetAtt [DownloadAndSaveSourceLambdaFunction, Arn]
+              - !GetAtt [MapPackagingVariablesLambdaFunction, Arn]
+              - !GetAtt [CheckIfMigrationsChangedLambdaFunction, Arn]
+              - !GetAtt [OpenPRLambdaFunction, Arn]
+              - !GetAtt [SaveBackupLambdaFunction, Arn]
+              - !GetAtt [NotifySuccessLambdaFunction, Arn]
+              - !GetAtt [NotifyErrorLambdaFunction, Arn]
+              - !GetAtt [DeleteCreatedBranchLambdaFunction, Arn]
+          - Effect: Allow
+            Action:
+              - states:StartExecution
+              - states:DescribeExecution
+              - states:StopExecution
+            Resource:
+              - !Ref DeployStateMachine
+              - !Ref RollbackDatabaseStateMachine
+          - Effect: Allow
+            Action:
+              - codebuild:StartBuild
+              - codebuild:StopBuild
+              - codebuild:BatchGetBuilds
+            Resource:
+              # WORKFLOW
+              - !GetAtt [ServerlessBuildProject, Arn]
+              - !GetAtt [WebpackBuildProject, Arn]
+          - Effect: Allow
+            Action:
+              - events:PutTargets
+              - events:PutRule
+              - events:DescribeRule
+            Resource:
+              - Fn::Join:
+                - ':'
+                - - arn
+                  - !Ref AWS::Partition
+                  - events
+                  - !Ref AWS::Region
+                  - !Ref AWS::AccountId
+                  - rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
+              - Fn::Join:
+                - ':'
+                - - arn
+                  - !Ref AWS::Partition
+                  - events
+                  - !Ref AWS::Region
+                  - !Ref AWS::AccountId
+                  - rule/StepFunctionsGetEventForCodeBuildStartBuildRule

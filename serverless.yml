@@ -50,6 +50,9 @@ custom:
     roleName: ${opt:state-machine-role-name, '${self:custom.stateMachine.name}-state-machine-role'}
     policyName: ${opt:state-machine-policy-name, '${self:custom.stateMachine.name}-state-machine-policy'}
 
+    workflowRoleName: ${self:custom.stateMachine.roleName}-workflow
+    deployRoleName: ${self:custom.stateMachine.roleName}-deploy
+    rollbackDatabaseRoleName: ${self:custom.stateMachine.roleName}-rollbackDatabase
     workflow: ${self:custom.stateMachine.name}-workflow
     deploy: ${self:custom.stateMachine.name}-deploy
     rollbackDatabase: ${self:custom.stateMachine.name}-rollback-database
@@ -126,10 +129,6 @@ custom:
 
   pullRequest:
     enabled: ${strToBool(${opt:pull-request-enabled, 'true'})}
-
-  sns:
-    notifyForValidationTopicName: ${opt:notify-topic-name, '${parent:service-name}-notify-for-validation'}
-    openPullRequestTopicName: ${opt:pull-request-topic-name, '${parent:service-name}-open-pull-request'}
 
 stepFunctions:
   ${file(stateMachines/index.yml)}
@@ -724,16 +723,15 @@ resources:
   # KMS
   - ${file(resources/KMS.yml)}
 
-  # SNS TOPICS
-  - ${file(resources/SNSTopics.yml)}
-
   # BUCKETS
   - ${file(resources/Buckets.yml)}
 
   # ROLES
   - ${file(resources/roles/CloudformationRole.yml)}
   - ${file(resources/roles/CodebuildRole.yml)}
-  - ${file(resources/roles/StateMachineRole.yml)}
+  - ${file(resources/roles/WorkflowStateMachineRole.yml)}
+  - ${file(resources/roles/DeployStateMachineRole.yml)}
+  - ${file(resources/roles/RollbackDatabaseStateMachineRole.yml)}
 
   # CODEBUILD PROJECTS
   - ${file(resources/codebuild/ServerlessBuild.yml)}

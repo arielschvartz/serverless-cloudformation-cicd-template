@@ -1,6 +1,6 @@
 name: ${self:custom.stateMachine.workflow}
 id: CICDWorkflowStateMachine
-role: !GetAtt [StateMachineRole, Arn]
+role: !GetAtt [WorkflowStateMachineRole, Arn]
 definition:
   Comment: |
     State machine for controlling the workflow of a new code deploy to QA and Production environments.
@@ -137,6 +137,7 @@ definition:
           source.$: $.source
           packages.$: $.packages.qa
           taskToken.$: $$.Task.Token
+          AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
       Catch:
         - ErrorEquals:
             - States.ALL
@@ -193,6 +194,7 @@ definition:
           snapshotIdentifier.$: $.deployQA.Payload.snapshotIdentifier
           databaseOptions.$: $.databaseOptions
           taskToken.$: $$.Task.Token
+          AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
       Catch:
         - ErrorEquals:
             - States.ALL
@@ -221,6 +223,7 @@ definition:
           source.$: $.source
           packages.$: $.packages.production
           taskToken.$: $$.Task.Token
+          AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
       Catch:
         - ErrorEquals:
             - States.ALL

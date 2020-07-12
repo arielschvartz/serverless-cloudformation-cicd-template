@@ -1,6 +1,6 @@
 name: ${self:custom.stateMachine.deploy}
 id: DeployStateMachine
-role: !GetAtt [StateMachineRole, Arn]
+role: !GetAtt [DeployStateMachineRole, Arn]
 definition:
   Comment: |
     State machine for packaging the source code, building the necessary resources on cloudformation and syncing the necessary S3 buckets.

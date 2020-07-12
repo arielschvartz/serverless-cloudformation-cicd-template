@@ -1,0 +1,39 @@
+Resources:
+  RollbackDatabaseStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ${self:custom.stateMachine.rollbackDatabaseRoleName}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+
+  RollbackDatabaseStateMachineRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles:
+        - !Ref RollbackDatabaseStateMachineRole
+      PolicyName: ${self:custom.stateMachine.policyName}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource:
+              - !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
+              - !GetAtt [UpdateDatabaseCNAMELambdaFunction, Arn]
+              - !GetAtt [RenameOldDatabaseInstanceLambdaFunction, Arn]
+              - !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
+              - !GetAtt [RenameNewDatabaseInstanceLambdaFunction, Arn]
+              - !GetAtt [DeleteDBInstanceLambdaFunction, Arn]
+              - !GetAtt [IsDatabaseInstanceDeletedLambdaFunction, Arn]
+              - !GetAtt [DeleteDBSnapshotLambdaFunction, Arn]
+              - !GetAtt [NotifySuccessToStepFunctionLambdaFunction, Arn]
+              - !GetAtt [NotifyFailToStepFunctionLambdaFunction, Arn]

@@ -1,0 +1,63 @@
+Resources:
+  DeployStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ${self:custom.stateMachine.deployRoleName}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+
+  DeployStateMachineRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles:
+        - !Ref DeployStateMachineRole
+      PolicyName: ${self:custom.stateMachine.policyName}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource:
+              # WORKFLOW
+              - !GetAtt [CheckIfCFStackExistsLambdaFunction, Arn]
+              - !GetAtt [CreateStackFromTemplateLambdaFunction, Arn]
+              - !GetAtt [IsStackReadyLambdaFunction, Arn]
+              - !GetAtt [UpdateCFTemplateLambdaFunction, Arn]
+              - !GetAtt [IsStackReadyLambdaFunction, Arn]
+              - !GetAtt [NotifyFailToStepFunctionLambdaFunction, Arn]
+              - !GetAtt [NotifySuccessToStepFunctionLambdaFunction, Arn]
+
+              - !GetAtt [TakeRDSSnapshotLambdaFunction, Arn]
+              - !GetAtt [IsSnapshotReadyLambdaFunction, Arn]
+          - Effect: Allow
+            Action:
+              - codebuild:StartBuild
+              - codebuild:StopBuild
+              - codebuild:BatchGetBuilds
+            Resource:
+              - !GetAtt [DeployFunctionsProject, Arn]
+              - !GetAtt [MigrateDatabaseProject, Arn]
+              - !GetAtt [SyncPackageToS3Project, Arn]
+          - Effect: Allow
+            Action:
+              - events:PutTargets
+              - events:PutRule
+              - events:DescribeRule
+            Resource:
+              - Fn::Join:
+                - ':'
+                - - arn
+                  - !Ref AWS::Partition
+                  - events
+                  - !Ref AWS::Region
+                  - !Ref AWS::AccountId
+                  - rule/StepFunctionsGetEventForCodeBuildStartBuildRule
