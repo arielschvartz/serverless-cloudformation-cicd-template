@@ -54,6 +54,7 @@ const parameters = [
   'sync-s3-encode-gzip',
   'sync-s3-bucket-name',
   'sync-s3-source',
+  'sync-s3-type',
   'migrate-database-enabled',
   'migrations-folder',
   'pre-migrate-command',

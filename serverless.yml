@@ -108,6 +108,7 @@ custom:
     rootFolder: ${opt:sync-s3-root-folder, './'}
     gzip: ${opt:sync-s3-encode-gzip, 'true'}
     source: ${opt:sync-s3-source, 'package'}
+    type: ${opt:sync-s3-type, 'serverless'}
 
   deployFunctions:
     projectName: ${parent:service-name}-codebuild-deploy-functions-project

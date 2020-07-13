@@ -3,3 +3,8 @@ Conditions:
     Fn::Equals:
       - ${self:custom.syncS3.source}
       - 'source'
+
+  SyncToS3FromServerless:
+    Fn::Equals:
+      - ${self:custom.syncS3.type}
+      - 'serverless'

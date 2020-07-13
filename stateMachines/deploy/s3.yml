@@ -30,7 +30,10 @@ States:
         Fn::If:
           - SyncToS3FromSource
           - $.source.location
-          - $.packages.serverless.package.Location
+          - Fn::If:
+            - SyncToS3FromServerless
+            - $.packages.serverless.package.Location
+            - $.packages.webpack.Location
 
   S3SuccessState:
     Type: Succeed
