@@ -287,10 +287,28 @@ functions:
     iamRoleStatements:
       - Effect: Allow
         Action:
-          - s3:*
-        Resource: '*'
+          - s3:GetObject
+          - s3:GetObjectTagging
+          - s3:PutObject
+          - s3:PutObjectTagging
+          - s3:ListBucket
+        Resource:
+          - arn:aws:s3:::${self:custom.bucket.package}
+          - arn:aws:s3:::${self:custom.bucket.package}/*
+          - arn:aws:s3:::${self:custom.bucket.source}
+          - arn:aws:s3:::${self:custom.bucket.source}/*
+          - arn:aws:s3:::${self:custom.bucket.cloudformationTemplatesBackup}
+          - arn:aws:s3:::${self:custom.bucket.cloudformationTemplatesBackup}/*
+      - Effect: Allow
+        Action:
+          - kms:GenerateDataKey
+          - kms:Decrypt
+        Resource:
+          - !GetAtt [KMSKey, Arn]
     environment:
       bucket: ${self:custom.bucket.cloudformationTemplatesBackup}
+    dependsOn:
+      - KMSKey
 
   NotifySuccess:
     handler: src/workflow.notifySuccess

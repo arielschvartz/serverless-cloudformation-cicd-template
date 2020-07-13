@@ -25,8 +25,8 @@ const getStackInfo = async ({ Location: location }) => {
         cicd: {
           syncS3BucketName,
           rdsIdentifier,
-          hostedZoneId = false,
-          rdsDomain = false,
+          hostedZoneId,
+          rdsDomain,
         } = {},
       } = {},
       provider: {
@@ -43,10 +43,10 @@ const getStackInfo = async ({ Location: location }) => {
     stackName,
     deploymentBucket,
     artifactDirectoryName,
-    syncS3BucketName,
-    rdsIdentifier,
-    hostedZoneId,
-    rdsDomain,
+    syncS3BucketName: syncS3BucketName || false,
+    rdsIdentifier: rdsIdentifier || false,
+    hostedZoneId: hostedZoneId || false,
+    rdsDomain: rdsDomain || false,
   }
 }
 
