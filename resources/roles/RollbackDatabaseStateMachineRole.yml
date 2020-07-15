@@ -27,10 +27,10 @@ Resources:
             Action:
               - lambda:InvokeFunction
             Resource:
+              - !GetAtt [CreateInstanceFromSnapshotLambdaFunction, Arn]
               - !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
               - !GetAtt [UpdateDatabaseCNAMELambdaFunction, Arn]
               - !GetAtt [RenameOldDatabaseInstanceLambdaFunction, Arn]
-              - !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
               - !GetAtt [RenameNewDatabaseInstanceLambdaFunction, Arn]
               - !GetAtt [DeleteDBInstanceLambdaFunction, Arn]
               - !GetAtt [IsDatabaseInstanceDeletedLambdaFunction, Arn]

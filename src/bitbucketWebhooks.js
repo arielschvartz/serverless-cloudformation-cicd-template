@@ -59,6 +59,26 @@ export const pullRequestApproved = async (event, context) => {
     }
   }
 
+  const {
+    executions = [],
+  } = await stepfunctions.listExecutions({
+    stateMachineArn: process.env.stateMachineArn,
+    statusFilter: "RUNNING",
+  }).promise();
+
+  if (executions.length > 0) {
+    await notify({
+      title: `${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} - CI/CD did not start!`,
+      text: `There is already executions running for this CI/CD pipeline.`,
+      status: 'error',
+    });
+
+    return {
+      status: 200,
+      body: 'CI/CD did not start because there is already an execution running.'
+    }
+  }
+
   try {
     await stepfunctions.startExecution({
       stateMachineArn: process.env.stateMachineArn,

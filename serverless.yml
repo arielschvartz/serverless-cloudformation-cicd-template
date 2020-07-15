@@ -153,6 +153,8 @@ functions:
   PRApproved:
     handler: src/bitbucketWebhooks.pullRequestApproved
     environment:
+      bitbucketWorkspace: ${self:custom.bitbucket.workspace}
+      bitbucketRepository: ${self:custom.bitbucket.repository}
       stateMachineArn: !Ref CICDWorkflowStateMachine
       destinationBranchName: ${self:custom.bitbucket.targetBranch}
       serverlessEnabled: ${self:custom.serverless.enabled}
@@ -168,6 +170,7 @@ functions:
       - Effect: Allow
         Action:
           - states:StartExecution
+          - states:ListExecutions
         Resource:
           - !Ref CICDWorkflowStateMachine
     events:
