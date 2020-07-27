@@ -57,7 +57,7 @@ definition:
       Type: Task
       Resource: !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
       ResultPath: $.databaseURL
-      Next: UpdateDatabaseCNAME
+      Next: RenameOldDB
       Parameters:
         Payload:
           environment.$: $.environment
@@ -81,32 +81,6 @@ definition:
             - describeDBInstances
           ResultPath: $.errorInfo
           Next: NotifyError
-        - ErrorEquals:
-            - States.ALL
-          ResultPath: $.errorInfo
-          Next: NotifyError
-
-    UpdateDatabaseCNAME:
-      Type: Task
-      Resource: !GetAtt [UpdateDatabaseCNAMELambdaFunction, Arn]
-      Next: RenameOldDB
-      ResultPath: null
-      Parameters:
-        Payload:
-          environment.$: $.environment
-          databaseURL.$: $.databaseURL
-          dbDomain.$: $.dbDomain
-          hostedZoneId.$: $.hostedZoneId
-      Retry:
-        - ErrorEquals:
-            - Lambda.ServiceException
-            - Lambda.AWSLambdaException
-            - Lambda.SdkClientException
-            - Lambda.Unknown
-          IntervalSeconds: 2
-          MaxAttempts: 6
-          BackoffRate: 2
-      Catch:
         - ErrorEquals:
             - States.ALL
           ResultPath: $.errorInfo
@@ -174,12 +148,71 @@ definition:
     RenameNewDB:
       Type: Task
       Resource: !GetAtt [RenameNewDatabaseInstanceLambdaFunction, Arn]
-      Next: DeleteDBInstance
+      Next: WaitNewDBRenaming
       ResultPath: null
       Parameters:
         Payload:
           environment.$: $.environment
           rdsIdentifier.$: $.rdsIdentifier
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    WaitNewDBRenaming:
+      Type: Wait
+      Seconds: 30
+      Next: IsNewDbRenamed
+
+    IsNewDbRenamed:
+      Type: Task
+      Resource: !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
+      Next: UpdateDatabaseCNAME
+      ResultPath: null
+      Parameters:
+        Payload:
+          environment.$: $.environment
+          rdsIdentifier.$: $.rdsIdentifier
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - DatabaseInstanceNotReadyError
+          ResultPath: null
+          Next: WaitOldDBRenaming
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+
+    UpdateDatabaseCNAME:
+      Type: Task
+      Resource: !GetAtt [UpdateDatabaseCNAMELambdaFunction, Arn]
+      Next: DeleteDBInstance
+      ResultPath: null
+      Parameters:
+        Payload:
+          environment.$: $.environment
+          databaseURL.$: $.databaseURL
+          dbDomain.$: $.dbDomain
+          hostedZoneId.$: $.hostedZoneId
       Retry:
         - ErrorEquals:
             - Lambda.ServiceException
