@@ -183,6 +183,7 @@ definition:
         Payload:
           environment.$: $.environment
           rdsIdentifier.$: $.rdsIdentifier
+          final: true
       Retry:
         - ErrorEquals:
             - Lambda.ServiceException

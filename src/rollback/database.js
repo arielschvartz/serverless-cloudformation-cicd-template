@@ -113,6 +113,7 @@ export const isRollbackInstanceReady = async (event, context) => {
       rdsIdentifier,
       snapshotIdentifier,
       old,
+      final,
     },
   } = event;
 
@@ -131,7 +132,13 @@ export const isRollbackInstanceReady = async (event, context) => {
         } = {},
       ] = [],
     } = await rds.describeDBInstances({
-      DBInstanceIdentifier: old ? getOldInstanceName(rdsIdentifier) : getRollbackInstanceName(rdsIdentifier),
+      DBInstanceIdentifier: old
+        ? getOldInstanceName(rdsIdentifier)
+        : (
+          final
+          ? rdsIdentifier
+          : getRollbackInstanceName(rdsIdentifier)
+        ),
     }).promise());
   } catch (error) {
     if (old && error.code === 'DBInstanceNotFound') {
