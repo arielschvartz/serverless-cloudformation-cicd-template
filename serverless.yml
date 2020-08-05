@@ -720,7 +720,7 @@ functions:
   NotifyFailed:
     handler: src/rollback.notifyFailed
 
-  NotifySuccessToStepFunction:
+  NotifySuccessToSF:
     handler: src/workflow.notifySuccessToStepFunction
     iamRoleStatementsName: ${parent:service-name}-success-to-func
     iamRoleStatements:
@@ -736,7 +736,7 @@ functions:
               - stateMachine
               - ${self:custom.stateMachine.workflow}
 
-  NotifyFailToStepFunction:
+  NotifyFailToSF:
     handler: src/workflow.notifyFailToStepFunction
     iamRoleStatementsName: ${parent:service-name}-fail-to-func
     iamRoleStatements:
