@@ -33,8 +33,8 @@ Resources:
               - !GetAtt [IsStackReadyLambdaFunction, Arn]
               - !GetAtt [UpdateCFTemplateLambdaFunction, Arn]
               - !GetAtt [IsStackReadyLambdaFunction, Arn]
-              - !GetAtt [NotifyFailToStepFunctionLambdaFunction, Arn]
-              - !GetAtt [NotifySuccessToStepFunctionLambdaFunction, Arn]
+              - !GetAtt [NotifyFailToSFLambdaFunction, Arn]
+              - !GetAtt [NotifySuccessToSFLambdaFunction, Arn]
 
               - !GetAtt [TakeRDSSnapshotLambdaFunction, Arn]
               - !GetAtt [IsSnapshotReadyLambdaFunction, Arn]

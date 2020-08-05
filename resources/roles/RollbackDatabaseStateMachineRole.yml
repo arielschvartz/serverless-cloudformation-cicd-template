@@ -35,5 +35,5 @@ Resources:
               - !GetAtt [DeleteDBInstanceLambdaFunction, Arn]
               - !GetAtt [IsDatabaseInstanceDeletedLambdaFunction, Arn]
               - !GetAtt [DeleteDBSnapshotLambdaFunction, Arn]
-              - !GetAtt [NotifySuccessToStepFunctionLambdaFunction, Arn]
-              - !GetAtt [NotifyFailToStepFunctionLambdaFunction, Arn]
+              - !GetAtt [NotifySuccessToSFLambdaFunction, Arn]
+              - !GetAtt [NotifyFailToSFLambdaFunction, Arn]

@@ -721,7 +721,7 @@ functions:
     handler: src/rollback.notifyFailed
 
   NotifySuccessToSF:
-    handler: src/workflow.notifySuccessToStepFunction
+    handler: src/workflow.notifySuccessToSF
     iamRoleStatementsName: ${parent:service-name}-success-to-func
     iamRoleStatements:
       - Effect: Allow
@@ -737,7 +737,7 @@ functions:
               - ${self:custom.stateMachine.workflow}
 
   NotifyFailToSF:
-    handler: src/workflow.notifyFailToStepFunction
+    handler: src/workflow.notifyFailToSF
     iamRoleStatementsName: ${parent:service-name}-fail-to-func
     iamRoleStatements:
       - Effect: Allow

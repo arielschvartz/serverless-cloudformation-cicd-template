@@ -210,7 +210,7 @@ export const notifiyError = async (event, context) => {
   });
 }
 
-export const notifyFailToStepFunction = async (event, context) => {
+export const notifyFailToSF = async (event, context) => {
   const {
     Payload: {
       errorInfo,
@@ -225,7 +225,7 @@ export const notifyFailToStepFunction = async (event, context) => {
   }).promise();
 }
 
-export const notifySuccessToStepFunction = async (event, context) => {
+export const notifySuccessToSF = async (event, context) => {
   const {
     Payload: {
       taskToken,

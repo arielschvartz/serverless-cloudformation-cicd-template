@@ -312,7 +312,7 @@ definition:
 
     NotifySuccess:
       Type: Task
-      Resource: !GetAtt [NotifySuccessToStepFunctionLambdaFunction, Arn]
+      Resource: !GetAtt [NotifySuccessToSFLambdaFunction, Arn]
       Parameters:
         Payload:
           taskToken.$: $.taskToken
@@ -332,7 +332,7 @@ definition:
 
     NotifyError:
       Type: Task
-      Resource: !GetAtt [NotifyFailToStepFunctionLambdaFunction, Arn]
+      Resource: !GetAtt [NotifyFailToSFLambdaFunction, Arn]
       Parameters:
         Payload:
           errorInfo.$: $.errorInfo
