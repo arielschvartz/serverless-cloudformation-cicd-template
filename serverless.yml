@@ -165,7 +165,7 @@ functions:
       branchPrefix: ${self:custom.bitbucket.branchPrefix}
       dbDomain: ${self:custom.domain.dbDomain}
       hostedZone: ${self:custom.domain.hostedZone}
-    iamRoleStatementsName: ${parent:service-name}-pr-approved-role
+    iamRoleStatementsName: ${parent:service-name}-pr-approved
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -214,7 +214,7 @@ functions:
       bitbucketClientId: ${self:custom.bitbucket.clientId}
       bitbucketSecret: ${self:custom.bitbucket.secret}
       sourceBucketName: !Ref SourceBucket
-    iamRoleStatementsName: ${parent:service-name}-download-and-save-role
+    iamRoleStatementsName: ${parent:service-name}-download-and-save
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -246,7 +246,7 @@ functions:
       serverlessQAStateName: ${self:custom.serverless.stateQA}
       serverlessProductionArtifactName: ${self:custom.serverless.artifactNameProduction}
       serverlessProductionStateName: ${self:custom.serverless.stateProduction}
-    iamRoleStatementsName: ${parent:service-name}-map-packaging-variables-role
+    iamRoleStatementsName: ${parent:service-name}-map-packaging-vars
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -287,7 +287,7 @@ functions:
 
   SaveBackup:
     handler: src/workflow.saveBackup
-    iamRoleStatementsName: ${parent:service-name}-save-backup-role
+    iamRoleStatementsName: ${parent:service-name}-save-backup
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -338,7 +338,7 @@ functions:
     handler: src/deploy.checkIfCFStackExists
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-check-cf-exists-role
+    iamRoleStatementsName: ${parent:service-name}-check-cf-exists
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -355,7 +355,7 @@ functions:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
       CF_QA_ROLE_ARN: ${self:custom.qa.cloudformation.roleArn}
       CF_PRODUCTION_ROLE_ARN: ${self:custom.cloudformation.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-create-cf-from-template-role
+    iamRoleStatementsName: ${parent:service-name}-create-cf-from-template
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -370,7 +370,7 @@ functions:
     handler: src/deploy.isStackReady
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-check-cf-ready-role
+    iamRoleStatementsName: ${parent:service-name}-check-cf-ready
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -387,7 +387,7 @@ functions:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
       CF_QA_ROLE_ARN: ${self:custom.qa.cloudformation.roleArn}
       CF_PRODUCTION_ROLE_ARN: ${self:custom.cloudformation.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-update-cf-role
+    iamRoleStatementsName: ${parent:service-name}-update-cf
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -433,7 +433,7 @@ functions:
     handler: src/deploy/database.takeRDSSnapshot
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-create-snapshot-role
+    iamRoleStatementsName: ${parent:service-name}-create-snap
     iamRoleStatements:
       - Effect: Allow
         Action: sts:AssumeRole
@@ -465,7 +465,7 @@ functions:
     handler: src/deploy/database.isSnapshotReady
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-snapshot-ready-role
+    iamRoleStatementsName: ${parent:service-name}-snap-ready
     iamRoleStatements:
       - Effect: Allow
         Action: sts:AssumeRole
@@ -497,7 +497,7 @@ functions:
     handler: src/rollback/database.createInstanceFromSnapshot
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-instance-from-snapshot-role
+    iamRoleStatementsName: ${parent:service-name}-instance-from-snap
     iamRoleStatements:
       - Effect: Allow
         Action: sts:AssumeRole
@@ -529,7 +529,7 @@ functions:
     handler:  src/rollback/database.isRollbackInstanceReady
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-database-ready-role
+    iamRoleStatementsName: ${parent:service-name}-db-ready
     iamRoleStatements:
       - Effect: Allow
         Action: sts:AssumeRole
@@ -561,7 +561,7 @@ functions:
     handler: src/rollback/database.updateDatabaseCNAME
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-update-cname-role
+    iamRoleStatementsName: ${parent:service-name}-update-cname
     iamRoleStatements:
       - Effect: Allow
         Action: sts:AssumeRole
@@ -575,7 +575,7 @@ functions:
     handler: src/rollback/database.renameOldDatabaseInstance
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-rename-old-database-role
+    iamRoleStatementsName: ${parent:service-name}-rename-old-db
     iamRoleStatements:
       - Effect: Allow
         Action: sts:AssumeRole
@@ -598,7 +598,7 @@ functions:
     handler: src/rollback/database.renameNewDatabaseInstance
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-rename-new-database-role
+    iamRoleStatementsName: ${parent:service-name}-rename-new-db
     iamRoleStatements:
       - Effect: Allow
         Action: sts:AssumeRole
@@ -621,7 +621,7 @@ functions:
     handler:  src/rollback/database.isDatabaseInstanceDeleted
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-database-deleted-role
+    iamRoleStatementsName: ${parent:service-name}-db-deleted
     iamRoleStatements:
       - Effect: Allow
         Action: sts:AssumeRole
@@ -644,7 +644,7 @@ functions:
     handler: src/rollback/database.deleteDBInstance
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-delete-database-role
+    iamRoleStatementsName: ${parent:service-name}-delete-db
     iamRoleStatements:
       - Effect: Allow
         Action: sts:AssumeRole
@@ -667,7 +667,7 @@ functions:
     handler: src/rollback/database.deleteDBSnapshot
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
-    iamRoleStatementsName: ${parent:service-name}-delete-snapshot-role
+    iamRoleStatementsName: ${parent:service-name}-delete-snap
     iamRoleStatements:
       - Effect: Allow
         Action: sts:AssumeRole
@@ -699,7 +699,7 @@ functions:
       - http:
           path: pull-request-merged-or-declined
           method: post
-    iamRoleStatementsName: ${parent:service-name}-pr-merged-declined-role
+    iamRoleStatementsName: ${parent:service-name}-pr-declined
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -722,7 +722,7 @@ functions:
 
   NotifySuccessToStepFunction:
     handler: src/workflow.notifySuccessToStepFunction
-    iamRoleStatementsName: ${parent:service-name}-success-to-func-role
+    iamRoleStatementsName: ${parent:service-name}-success-to-func
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -738,8 +738,8 @@ functions:
 
   NotifyFailToStepFunction:
     handler: src/workflow.notifyFailToStepFunction
-    iamRoleStatementsName: ${parent:service-name}-fail-to-func-role
-    iamRoleStatements:
+    iamRoleStatementsName: ${parent:service-name}-fail-to-func
+  iamRoleStatements:
       - Effect: Allow
         Action:
           - states:SendTaskFailure
