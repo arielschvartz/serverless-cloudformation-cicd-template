@@ -739,7 +739,7 @@ functions:
   NotifyFailToStepFunction:
     handler: src/workflow.notifyFailToStepFunction
     iamRoleStatementsName: ${parent:service-name}-fail-to-func
-  iamRoleStatements:
+    iamRoleStatements:
       - Effect: Allow
         Action:
           - states:SendTaskFailure
