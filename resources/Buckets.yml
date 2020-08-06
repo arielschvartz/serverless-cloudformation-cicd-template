@@ -11,6 +11,7 @@ Resources:
       - CodebuildRole
       - PackageBucket
       - MapPackVarsLambdaFunction
+      - SaveBackupLambdaFunction
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref PackageBucket
@@ -27,12 +28,12 @@ Resources:
                   - ':'
                   - - 'arn:aws:iam:'
                     - !Ref AWS::AccountId
-                    - role/${parent:service-name}-map-packaging-variables-role
+                    - role/${parent:service-name}-map-packaging-vars
                 - Fn::Join:
                   - ':'
                   - - 'arn:aws:iam:'
                     - !Ref AWS::AccountId
-                    - role/${parent:service-name}-save-backup-role
+                    - role/${parent:service-name}-save-backup
                 - ${self:custom.qa.roleArn}
                 - ${self:custom.qa.cloudformation.roleArn}
             Resource:
@@ -51,6 +52,7 @@ Resources:
       - CodebuildRole
       - SourceBucket
       - DldAndSaveSourceLambdaFunction
+      - SaveBackupLambdaFunction
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref SourceBucket
@@ -67,12 +69,12 @@ Resources:
                   - ':'
                   - - 'arn:aws:iam:'
                     - !Ref AWS::AccountId
-                    - role/${parent:service-name}-download-and-save-role
+                    - role/${parent:service-name}-download-and-save
                 - Fn::Join:
                   - ':'
                   - - 'arn:aws:iam:'
                     - !Ref AWS::AccountId
-                    - role/${parent:service-name}-save-backup-role
+                    - role/${parent:service-name}-save-backup
             Resource:
               - arn:aws:s3:::${self:custom.bucket.source}
               - arn:aws:s3:::${self:custom.bucket.source}/*
@@ -88,6 +90,7 @@ Resources:
     DependsOn:
       - CodebuildRole
       - CloudFormationTemplatesBackupBucket
+      - SaveBackupLambdaFunction
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref CloudFormationTemplatesBackupBucket
@@ -104,7 +107,7 @@ Resources:
                   - ':'
                   - - 'arn:aws:iam:'
                     - !Ref AWS::AccountId
-                    - role/${parent:service-name}-save-backup-role
+                    - role/${parent:service-name}-save-backup
             Resource:
               - arn:aws:s3:::${self:custom.bucket.cloudformationTemplatesBackup}
               - arn:aws:s3:::${self:custom.bucket.cloudformationTemplatesBackup}/*
