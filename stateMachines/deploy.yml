@@ -11,12 +11,12 @@ definition:
       Choices:
         - Variable: $.isServerless
           BooleanEquals: true
-          Next: CheckIfCFStackExists
+          Next: CFStackExists
       Default: ExtraActionsInParallel
 
-    CheckIfCFStackExists:
+    CFStackExists:
       Type: Task
-      Resource: !GetAtt [CheckIfCFStackExistsLambdaFunction, Arn]
+      Resource: !GetAtt [CFStackExistsLambdaFunction, Arn]
       ResultPath: $.cfStackExists
       Parameters:
         Payload:
@@ -35,16 +35,16 @@ definition:
         - ErrorEquals:
             - StackDoesNotExistError
           ResultPath: null
-          Next: CreateStackFromTemplate
+          Next: CreateStackTmpl
         - ErrorEquals:
             - States.ALL
           ResultPath: $.errorInfo
           Next: NotifyError
       Next: SendFunctionsZipToS3
 
-    CreateStackFromTemplate:
+    CreateStackTmpl:
       Type: Task
-      Resource: !GetAtt [CreateStackFromTemplateLambdaFunction, Arn]
+      Resource: !GetAtt [CreateStackTmplLambdaFunction, Arn]
       ResultPath: null
       Parameters:
         Payload:

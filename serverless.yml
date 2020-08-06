@@ -204,7 +204,7 @@ functions:
       bitbucketClientId: ${self:custom.bitbucket.clientId}
       bitbucketSecret: ${self:custom.bitbucket.secret}
 
-  DownloadAndSaveSource:
+  DldAndSaveSource:
     handler: src/bitbucket.downloadAndSaveSource
     memorySize: 512
     timeout: 30
@@ -236,7 +236,7 @@ functions:
     layers:
       - arn:aws:lambda:#{AWS::Region}:553035198032:layer:git-lambda2:6
 
-  MapPackagingVariables:
+  MapPackVars:
     handler: src/workflow.mapPackagingVariables
     memorySize: 256
     environment:
@@ -331,10 +331,10 @@ functions:
       discordWebhookUrl: ${self:custom.notifications.discordWebhookUrl}
 
   # BUILD AND DEPLOY FUNCTIONS
-  BuildAndDeploySuccessful:
+  DeploySuccessful:
     handler: src/deploy.success
 
-  CheckIfCFStackExists:
+  CFStackExists:
     handler: src/deploy.checkIfCFStackExists
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
@@ -348,7 +348,7 @@ functions:
         Action: sts:AssumeRole
         Resource: ${self:custom.qa.roleArn}
 
-  CreateStackFromTemplate:
+  CreateStackTmpl:
     handler: src/deploy.createBaseTemplate
     environment:
       TEMPLATE: ${fileToString:resources/BaseStack.yml}
@@ -416,7 +416,7 @@ functions:
     dependsOn:
       - PackageBucket
 
-  CheckIfMigrationsChanged:
+  HasMigrationsChanged:
     handler: src/deploy/database.checkMigrationsChecksumChanged
     timeout: 30
     environment:
@@ -493,7 +493,7 @@ functions:
               - snapshot
               - '*'
 
-  CreateInstanceFromSnapshot:
+  CreateInstFromSnap:
     handler: src/rollback/database.createInstanceFromSnapshot
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
@@ -525,7 +525,7 @@ functions:
               - snapshot
               - '*'
 
-  IsRollbackInstanceReady:
+  IsRollbackInstReady:
     handler:  src/rollback/database.isRollbackInstanceReady
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
@@ -571,7 +571,7 @@ functions:
           - route53:ChangeResourceRecordSets
         Resource: '*'
 
-  RenameOldDatabaseInstance:
+  RenameOldDBInst:
     handler: src/rollback/database.renameOldDatabaseInstance
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
@@ -594,7 +594,7 @@ functions:
               - db
               - '*'
 
-  RenameNewDatabaseInstance:
+  RenameNewDBInst:
     handler: src/rollback/database.renameNewDatabaseInstance
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
@@ -617,7 +617,7 @@ functions:
               - db
               - '*'
 
-  IsDatabaseInstanceDeleted:
+  IsDBInstDeleted:
     handler:  src/rollback/database.isDatabaseInstanceDeleted
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
@@ -640,7 +640,7 @@ functions:
               - db
               - '*'
 
-  DeleteDBInstance:
+  DeleteDBInst:
     handler: src/rollback/database.deleteDBInstance
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
@@ -651,7 +651,7 @@ functions:
         Resource: ${self:custom.qa.roleArn}
       - Effect: Allow
         Action:
-          - rds:DeleteDBInstance
+          - rds:DeleteDBInst
         Resource:
           - Fn::Join:
             - ':'
@@ -663,7 +663,7 @@ functions:
               - db
               - '*'
 
-  DeleteDBSnapshot:
+  DeleteDBSnap:
     handler: src/rollback/database.deleteDBSnapshot
     environment:
       QA_ROLE_ARN: ${self:custom.qa.roleArn}
@@ -674,7 +674,7 @@ functions:
         Resource: ${self:custom.qa.roleArn}
       - Effect: Allow
         Action:
-          - rds:DeleteDBSnapshot
+          - rds:DeleteDBSnap
         Resource:
           - Fn::Join:
             - ':'
@@ -714,7 +714,7 @@ functions:
               - stateMachine
               - ${self:custom.stateMachine.workflow}
 
-  RollbackCloudformation:
+  RollbackCF:
     handler: src/rollback.cloudformation
 
   NotifyFailed:

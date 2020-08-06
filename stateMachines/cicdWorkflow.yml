@@ -25,11 +25,11 @@ definition:
             - States.ALL
           ResultPath: $.errorInfo
           Next: NotifyError
-      Next: DownloadAndSaveSource
+      Next: DldAndSaveSource
 
-    DownloadAndSaveSource:
+    DldAndSaveSource:
       Type: Task
-      Resource: !GetAtt [DownloadAndSaveSourceLambdaFunction, Arn]
+      Resource: !GetAtt [DldAndSaveSourceLambdaFunction, Arn]
       InputPath: $.bitbucket
       ResultPath: $.source
       Retry:
@@ -60,11 +60,11 @@ definition:
       Branches:
         - ${file(stateMachines/build/serverless.yml)}
         - ${file(stateMachines/build/webpack.yml)}
-      Next: MapPackagingVariables
+      Next: MapPackVars
 
-    MapPackagingVariables:
+    MapPackVars:
       Type: Task
-      Resource: !GetAtt [MapPackagingVariablesLambdaFunction, Arn]
+      Resource: !GetAtt [MapPackVarsLambdaFunction, Arn]
       InputPath: $.packages
       ResultPath: $.packages
       Retry:
@@ -89,18 +89,18 @@ definition:
       Choices:
         - Variable: $.databaseOptions.migrateEnabled
           BooleanEquals: true
-          Next: CheckIfMigrationsChanged
+          Next: HasMigrationsChanged
       Default: DeployQA
 
-    # CheckIfMigrationsChanged:
+    # HasMigrationsChanged:
     #   Type: Pass
     #   Result: true
     #   ResultPath: $.databaseOptions.migrationsChanged
     #   Next: DeployQA
 
-    CheckIfMigrationsChanged:
+    HasMigrationsChanged:
       Type: Task
-      Resource: !GetAtt [CheckIfMigrationsChangedLambdaFunction, Arn]
+      Resource: !GetAtt [HasMigrationsChangedLambdaFunction, Arn]
       Next: DeployQA
       ResultPath: $.databaseOptions.migrationsChanged
       Retry:

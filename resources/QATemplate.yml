@@ -93,8 +93,8 @@ Resources:
               - rds:DescribeDBSnapshots
               - rds:RestoreDBInstanceFromDBSnapshot
               - rds:ModifyDBInstance
-              - rds:DeleteDBInstance
-              - rds:DeleteDBSnapshot
+              - rds:DeleteDBInst
+              - rds:DeleteDBSnap
               - secretsmanager:GetSecretValue
               - lambda:GetLayerVersion
               - lambda:ListLayers

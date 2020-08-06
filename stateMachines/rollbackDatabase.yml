@@ -21,11 +21,11 @@ definition:
         - Variable: $.snapshotIdentifier
           BooleanEquals: false
           Next: NotifySuccess
-      Default: CreateInstanceFromSnapshot
+      Default: CreateInstFromSnap
 
-    CreateInstanceFromSnapshot:
+    CreateInstFromSnap:
       Type: Task
-      Resource: !GetAtt [CreateInstanceFromSnapshotLambdaFunction, Arn]
+      Resource: !GetAtt [CreateInstFromSnapLambdaFunction, Arn]
       ResultPath: null
       Next: WaitSnapshot
       Parameters:
@@ -51,11 +51,11 @@ definition:
     WaitSnapshot:
       Type: Wait
       Seconds: 150
-      Next: IsRollbackInstanceReady
+      Next: IsRollbackInstReady
 
-    IsRollbackInstanceReady:
+    IsRollbackInstReady:
       Type: Task
-      Resource: !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
+      Resource: !GetAtt [IsRollbackInstReadyLambdaFunction, Arn]
       ResultPath: $.databaseURL
       Next: RenameOldDB
       Parameters:
@@ -88,7 +88,7 @@ definition:
 
     RenameOldDB:
       Type: Task
-      Resource: !GetAtt [RenameOldDatabaseInstanceLambdaFunction, Arn]
+      Resource: !GetAtt [RenameOldDBInstLambdaFunction, Arn]
       Next: WaitOldDBRenaming
       ResultPath: null
       Parameters:
@@ -117,7 +117,7 @@ definition:
 
     IsOldDbRenamed:
       Type: Task
-      Resource: !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
+      Resource: !GetAtt [IsRollbackInstReadyLambdaFunction, Arn]
       Next: RenameNewDB
       ResultPath: null
       Parameters:
@@ -147,7 +147,7 @@ definition:
 
     RenameNewDB:
       Type: Task
-      Resource: !GetAtt [RenameNewDatabaseInstanceLambdaFunction, Arn]
+      Resource: !GetAtt [RenameNewDBInstLambdaFunction, Arn]
       Next: WaitNewDBRenaming
       ResultPath: null
       Parameters:
@@ -176,7 +176,7 @@ definition:
 
     IsNewDbRenamed:
       Type: Task
-      Resource: !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
+      Resource: !GetAtt [IsRollbackInstReadyLambdaFunction, Arn]
       Next: UpdateDatabaseCNAME
       ResultPath: null
       Parameters:
@@ -206,7 +206,7 @@ definition:
     UpdateDatabaseCNAME:
       Type: Task
       Resource: !GetAtt [UpdateDatabaseCNAMELambdaFunction, Arn]
-      Next: DeleteDBInstance
+      Next: DeleteDBInst
       ResultPath: null
       Parameters:
         Payload:
@@ -229,9 +229,9 @@ definition:
           ResultPath: $.errorInfo
           Next: NotifyError
 
-    DeleteDBInstance:
+    DeleteDBInst:
       Type: Task
-      Resource: !GetAtt [DeleteDBInstanceLambdaFunction, Arn]
+      Resource: !GetAtt [DeleteDBInstLambdaFunction, Arn]
       Next: WaitDelete
       ResultPath: null
       Parameters:
@@ -256,13 +256,13 @@ definition:
     WaitDelete:
       Type: Wait
       Seconds: 60
-      Next: IsDatabaseInstanceDeleted
+      Next: IsDBInstDeleted
 
-    IsDatabaseInstanceDeleted:
+    IsDBInstDeleted:
       Type: Task
-      Resource: !GetAtt [IsDatabaseInstanceDeletedLambdaFunction, Arn]
+      Resource: !GetAtt [IsDBInstDeletedLambdaFunction, Arn]
       ResultPath: null
-      Next: DeleteDBSnapshot
+      Next: DeleteDBSnap
       Parameters:
         Payload:
           environment.$: $.environment
@@ -286,9 +286,9 @@ definition:
           ResultPath: $.errorInfo
           Next: NotifyError
 
-    DeleteDBSnapshot:
+    DeleteDBSnap:
       Type: Task
-      Resource: !GetAtt [DeleteDBSnapshotLambdaFunction, Arn]
+      Resource: !GetAtt [DeleteDBSnapLambdaFunction, Arn]
       Next: NotifySuccess
       ResultPath: null
       Parameters:

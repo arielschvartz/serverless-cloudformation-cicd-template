@@ -28,8 +28,8 @@ Resources:
               - lambda:InvokeFunction
             Resource:
               # WORKFLOW
-              - !GetAtt [CheckIfCFStackExistsLambdaFunction, Arn]
-              - !GetAtt [CreateStackFromTemplateLambdaFunction, Arn]
+              - !GetAtt [CFStackExistsLambdaFunction, Arn]
+              - !GetAtt [CreateStackTmplLambdaFunction, Arn]
               - !GetAtt [IsStackReadyLambdaFunction, Arn]
               - !GetAtt [UpdateCFTemplateLambdaFunction, Arn]
               - !GetAtt [IsStackReadyLambdaFunction, Arn]

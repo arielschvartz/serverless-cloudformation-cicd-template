@@ -28,9 +28,9 @@ Resources:
               - lambda:InvokeFunction
             Resource:
               - !GetAtt [OpenNewBranchLambdaFunction, Arn]
-              - !GetAtt [DownloadAndSaveSourceLambdaFunction, Arn]
-              - !GetAtt [MapPackagingVariablesLambdaFunction, Arn]
-              - !GetAtt [CheckIfMigrationsChangedLambdaFunction, Arn]
+              - !GetAtt [DldAndSaveSourceLambdaFunction, Arn]
+              - !GetAtt [MapPackVarsLambdaFunction, Arn]
+              - !GetAtt [HasMigrationsChangedLambdaFunction, Arn]
               - !GetAtt [OpenPRLambdaFunction, Arn]
               - !GetAtt [SaveBackupLambdaFunction, Arn]
               - !GetAtt [NotifySuccessLambdaFunction, Arn]

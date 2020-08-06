@@ -27,13 +27,13 @@ Resources:
             Action:
               - lambda:InvokeFunction
             Resource:
-              - !GetAtt [CreateInstanceFromSnapshotLambdaFunction, Arn]
-              - !GetAtt [IsRollbackInstanceReadyLambdaFunction, Arn]
+              - !GetAtt [CreateInstFromSnapLambdaFunction, Arn]
+              - !GetAtt [IsRollbackInstReadyLambdaFunction, Arn]
               - !GetAtt [UpdateDatabaseCNAMELambdaFunction, Arn]
-              - !GetAtt [RenameOldDatabaseInstanceLambdaFunction, Arn]
-              - !GetAtt [RenameNewDatabaseInstanceLambdaFunction, Arn]
-              - !GetAtt [DeleteDBInstanceLambdaFunction, Arn]
-              - !GetAtt [IsDatabaseInstanceDeletedLambdaFunction, Arn]
-              - !GetAtt [DeleteDBSnapshotLambdaFunction, Arn]
+              - !GetAtt [RenameOldDBInstLambdaFunction, Arn]
+              - !GetAtt [RenameNewDBInstLambdaFunction, Arn]
+              - !GetAtt [DeleteDBInstLambdaFunction, Arn]
+              - !GetAtt [IsDBInstDeletedLambdaFunction, Arn]
+              - !GetAtt [DeleteDBSnapLambdaFunction, Arn]
               - !GetAtt [NotifySuccessToSFLambdaFunction, Arn]
               - !GetAtt [NotifyFailToSFLambdaFunction, Arn]

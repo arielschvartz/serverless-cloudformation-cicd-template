@@ -10,7 +10,7 @@ Resources:
     DependsOn:
       - CodebuildRole
       - PackageBucket
-      - MapPackagingVariablesLambdaFunction
+      - MapPackVarsLambdaFunction
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref PackageBucket
@@ -50,7 +50,7 @@ Resources:
     DependsOn:
       - CodebuildRole
       - SourceBucket
-      - DownloadAndSaveSourceLambdaFunction
+      - DldAndSaveSourceLambdaFunction
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref SourceBucket
