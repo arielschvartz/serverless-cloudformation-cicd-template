@@ -1,6 +1,6 @@
 {
   "name": "serverless-cf-cicd",
-  "version": "1.0.41",
+  "version": "1.0.43",
   "description": "Plugin for creating a CodePipeline on AWS that deploys a serverless project configurable for specific commands in between like rolling back cloudformation, migration databases, syncinc s3, etc...",
   "main": "index.js",
   "homepage": "https://github.com/arielschvartz/serverless-cloudformation-cicd-template#readme",

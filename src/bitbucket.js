@@ -47,7 +47,18 @@ export const openNewBranch = async (event, context) => {
   const name = 'sourceCode'
 
   execSync('rm -rf /tmp/*', { encoding: 'utf8', stdio: 'inherit' });
-  execSync(`cd /tmp && git clone https://x-token-auth:${bitbucketAccessToken}@bitbucket.org/${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} --branch ${destinationBranchName} --recurse-submodules ${name}`, { encoding: 'utf8', stdio: 'inherit' });
+  execSync(`cd /tmp && git clone https://x-token-auth:${bitbucketAccessToken}@bitbucket.org/${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} --branch ${destinationBranchName} ${name}`, { encoding: 'utf8', stdio: 'inherit' });
+  execSync(`
+    cd /tmp/${name};
+    while IFS= read -r submodule; do
+      if [ -z "$submodule" ];
+      then
+        echo "no submodules";
+      else
+        git clone https://x-token-auth:${bitbucketAccessToken}@bitbucket.org/${process.env.bitbucketWorkspace}/$submodule;
+      fi
+    done <<< $(git config --file .gitmodules --get-regexp path | awk '{ print $2 }')
+  `);
   execSync(`cd /tmp/${name} && git checkout -b ${tempBranchName}`, { encoding: 'utf8', stdio: 'inherit' });
   execSync(`cd /tmp/${name} && git config user.email "${process.env.serviceName}@cicd.com"`);
   execSync(`cd /tmp/${name} && git config user.name "CICD"`);
@@ -80,7 +91,18 @@ export const downloadAndSaveSource = async (event, context) => {
   const name = 'sourceCode'
 
   execSync('rm -rf /tmp/*', { encoding: 'utf8', stdio: 'inherit' });
-  execSync(`cd /tmp && git clone https://x-token-auth:${bitbucketAccessToken}@bitbucket.org/${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} --branch ${branchName} --recurse-submodules --single-branch ${name}`, { encoding: 'utf8', stdio: 'inherit' });
+  execSync(`cd /tmp && git clone https://x-token-auth:${bitbucketAccessToken}@bitbucket.org/${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} --branch ${branchName} --single-branch ${name}`, { encoding: 'utf8', stdio: 'inherit' });
+  execSync(`
+    cd /tmp/${name};
+    while IFS= read -r submodule; do
+      if [ -z "$submodule" ];
+      then
+        echo "no submodules";
+      else
+        git clone https://x-token-auth:${bitbucketAccessToken}@bitbucket.org/${process.env.bitbucketWorkspace}/$submodule;
+      fi
+    done <<< $(git config --file .gitmodules --get-regexp path | awk '{ print $2 }')
+  `);
   execSync(`cd /tmp/${name} && git archive --format=zip -o ${name}.zip HEAD`, { encoding: 'utf8', stdio: 'inherit' });
 
   const filePath = `/tmp/${name}/${name}.zip`;
