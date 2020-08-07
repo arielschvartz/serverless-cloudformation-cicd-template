@@ -58,12 +58,15 @@ const notifySlack = async ({ author, title, text, status }) => {
 }
 
 const notifyDiscord = async ({ author, title, text, status }) => {
-  return axios.post(`${process.env.slackWebhookUrl}?wait=true`, {
+  return axios.post(`${process.env.discordWebhookUrl}?wait=true`, {
     embeds: [{
       title,
+      type: 'rich',
       description: text,
       color: getColorFromStatus(status),
-      author,
+      author: {
+        name: author,
+      },
     }]
   })
 }

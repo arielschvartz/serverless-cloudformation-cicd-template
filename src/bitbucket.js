@@ -1,4 +1,5 @@
 import fs from 'fs';
+import archiver from 'archiver';
 import AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { execSync } from 'child_process';
@@ -86,15 +87,44 @@ export const downloadAndSaveSource = async (event, context) => {
   `, { encoding: 'utf8', stdio: 'inherit' });
   execSync(`
     cd /tmp/${name};
-    git submodule --quiet foreach 'git clone https://x-token-auth:${bitbucketAccessToken}@bitbucket.org/${process.env.bitbucketWorkspace}/$sm_path;';
+    while IFS= read -r submodule; do
+      if [ -z "$submodule" ];
+      then
+        echo "no submodules";
+      else
+        git clone https://x-token-auth:${bitbucketAccessToken}@bitbucket.org/${process.env.bitbucketWorkspace}/$submodule;
+      fi
+    done <<< $(git config --file .gitmodules --get-regexp path | awk '{ print $2 }');
   `, { encoding: 'utf8', stdio: 'inherit' });
-  execSync(`
-    cd /tmp/${name};
-    git archive --format=zip -o ${name}.zip HEAD;
-    git submodule --quiet foreach 'cd $toplevel; zip -ru ${name}.zip $sm_path';
-  `, { encoding: 'utf8', stdio: 'inherit' })
 
-  const filePath = `/tmp/${name}/${name}.zip`;
+  const filePath = `/tmp/${name}.zip`;
+
+  console.log("BEFORE ARCHIVE PROMISE")
+
+  await new Promise((resolve, reject) => {
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Sets the compression level.
+    });
+    const output = fs.createWriteStream(filePath);
+
+    archive.directory(`/tmp/${name}`, false);
+    archive.on('error', (err) => reject(err));
+    archive.on('warning', (err) => {
+      if (err.code === 'ENOENT') {
+        console.log(err);
+      } else {
+        reject(err);
+      }
+    });
+    archive.pipe(output);
+
+    output.on('close', () => resolve());
+    archive.finalize();
+
+    console.log("FINALIZING ARCHIVE");
+  });
+
+  console.log("ARCHIVED");
 
   const sourceBucketName = process.env.sourceBucketName;
   const sourceObjectKey = `${branchName}-${uuidv4()}.zip`;
