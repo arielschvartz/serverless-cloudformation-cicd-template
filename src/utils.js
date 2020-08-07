@@ -101,7 +101,7 @@ const notifyDiscord = async ({ author, title, text, status }) => {
       title,
       type: 'rich',
       description: text,
-      color: getColorFromStatus(status),
+      color: getDiscordColorFromStatus(status),
       author: {
         name: author,
       },
