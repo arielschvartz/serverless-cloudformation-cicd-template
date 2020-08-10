@@ -36,6 +36,14 @@ class ParentServiceNameResolver {
     return content;
   }
 
+  async ymlToStringResolver(src) {
+    const p = src.slice(12)
+    const extension = src.split('.').pop();
+
+    const data = fs.readFileSync(path.resolve(__dirname, '..', p), 'utf-8');
+    return data;
+  }
+
   async fileToStringResolver(src) {
     const p = src.slice(13)
     const extension = src.split('.').pop();

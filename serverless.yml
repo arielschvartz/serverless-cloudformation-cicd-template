@@ -1,5 +1,7 @@
 service: ${parent:service-name}-cf-cicd
 
+configValidationMode: off
+
 plugins:
   - custom-resolvers
   - serverless-create-custom-deployment-bucket
@@ -122,8 +124,7 @@ custom:
     isRDS: ${strToBool(${opt:rds-database, 'true'})}
 
   domain:
-    hostedZone: ${opt:hosted-zone, ${strToBool('false')}}
-    dbDomain: ${opt:rds-domain, ${strToBool('false')}}
+    dbDomain: ${opt:rds-domain, 'false'}}
 
   notifications:
     discordWebhookUrl: ${opt:discord-webhook, ''}
@@ -164,7 +165,6 @@ functions:
       isRDS: ${self:custom.migrate.isRDS}
       branchPrefix: ${self:custom.bitbucket.branchPrefix}
       dbDomain: ${self:custom.domain.dbDomain}
-      hostedZone: ${self:custom.domain.hostedZone}
     iamRoleStatementsName: ${parent:service-name}-pr-approved
     iamRoleStatements:
       - Effect: Allow

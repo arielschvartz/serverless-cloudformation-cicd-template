@@ -13,7 +13,7 @@ definition:
           BooleanEquals: false
           Next: NotifySuccess
         - Variable: $.dbDomain
-          BooleanEquals: false
+          StringEquals: 'false'
           Next: NotifySuccess
         - Variable: $.hostedZoneId
           BooleanEquals: false

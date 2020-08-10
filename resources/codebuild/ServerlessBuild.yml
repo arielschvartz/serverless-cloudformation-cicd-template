@@ -65,6 +65,6 @@ Resources:
       Source:
         Type: NO_SOURCE
         BuildSpec: |
-          ${fileToString:resources/buildspecs/serverlessBuild.yml}
+          ${ymlToStringResolver:resources/buildspecs/serverlessBuild.yml}
       ServiceRole: !GetAtt [CodebuildRole, Arn]
       TimeoutInMinutes: 30
