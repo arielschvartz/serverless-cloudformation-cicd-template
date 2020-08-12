@@ -141,7 +141,7 @@ export const isRollbackInstanceReady = async (event, context) => {
         ),
     }).promise());
   } catch (error) {
-    if (old && error.code === 'DBInstanceNotFound') {
+    if ((old || final) && error.code === 'DBInstanceNotFound') {
       throw new DatabaseInstanceNotReadyError();
     } else {
       throw error;
