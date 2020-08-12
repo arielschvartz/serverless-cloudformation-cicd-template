@@ -19,7 +19,7 @@ phases:
       - rm -rf ${self:custom.webpackBuild.packageOutputFolder}
       
       # ASSUMING QA ROLE IF ONE QA TO DO EVERYTHING ON BEHALF OF THAT USER
-      - ${escapedFileToString:resources/buildspecs/assumeQARole.sh}
+      - ${fileToString:resources/buildspecs/assumeQARole.sh}
         
       - ${self:custom.webpackBuild.packageQA}
       - cp -R ${self:custom.webpackBuild.packageOutputFolder}/. $QA_TARGET_DIR/

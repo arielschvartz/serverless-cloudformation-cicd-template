@@ -14,6 +14,7 @@ class ParentServiceNameResolver {
     this.variableResolvers = {
       parent: this.parentServiceNameResolver,
       escapedFileToString: this.escapedFileToStringResolver,
+      ymlToString: this.ymlToStringResolver,
       fileToString: this.fileToStringResolver,
     }
   }

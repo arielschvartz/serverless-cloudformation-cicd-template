@@ -21,7 +21,7 @@ phases:
       - rm -rf ${self:custom.serverless.packageOutputFolder}
       
       # ASSUMING QA ROLE IF ONE QA TO DO EVERYTHING ON BEHALF OF THAT USER
-      - ${escapedFileToString:resources/buildspecs/assumeQARole.sh}
+      - ${fileToString:resources/buildspecs/assumeQARole.sh}
         
       - ${self:custom.serverless.packageQA}
       - cp -R ${self:custom.serverless.packageOutputFolder}/. $QA_TARGET_DIR/
