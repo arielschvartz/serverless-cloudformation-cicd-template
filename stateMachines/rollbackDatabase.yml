@@ -177,7 +177,7 @@ definition:
     IsNewDbRenamed:
       Type: Task
       Resource: !GetAtt [IsRollbackInstReadyLambdaFunction, Arn]
-      Next: UpdateDatabaseCNAME
+      Next: DeleteDBInst
       ResultPath: null
       Parameters:
         Payload:
@@ -203,31 +203,31 @@ definition:
           ResultPath: $.errorInfo
           Next: NotifyError
 
-    UpdateDatabaseCNAME:
-      Type: Task
-      Resource: !GetAtt [UpdateDatabaseCNAMELambdaFunction, Arn]
-      Next: DeleteDBInst
-      ResultPath: null
-      Parameters:
-        Payload:
-          environment.$: $.environment
-          databaseURL.$: $.databaseURL
-          dbDomain.$: $.dbDomain
-          hostedZoneId.$: $.hostedZoneId
-      Retry:
-        - ErrorEquals:
-            - Lambda.ServiceException
-            - Lambda.AWSLambdaException
-            - Lambda.SdkClientException
-            - Lambda.Unknown
-          IntervalSeconds: 2
-          MaxAttempts: 6
-          BackoffRate: 2
-      Catch:
-        - ErrorEquals:
-            - States.ALL
-          ResultPath: $.errorInfo
-          Next: NotifyError
+    # UpdateDatabaseCNAME:
+    #   Type: Task
+    #   Resource: !GetAtt [UpdateDatabaseCNAMELambdaFunction, Arn]
+    #   Next: DeleteDBInst
+    #   ResultPath: null
+    #   Parameters:
+    #     Payload:
+    #       environment.$: $.environment
+    #       databaseURL.$: $.databaseURL
+    #       dbDomain.$: $.dbDomain
+    #       hostedZoneId.$: $.hostedZoneId
+    #   Retry:
+    #     - ErrorEquals:
+    #         - Lambda.ServiceException
+    #         - Lambda.AWSLambdaException
+    #         - Lambda.SdkClientException
+    #         - Lambda.Unknown
+    #       IntervalSeconds: 2
+    #       MaxAttempts: 6
+    #       BackoffRate: 2
+    #   Catch:
+    #     - ErrorEquals:
+    #         - States.ALL
+    #       ResultPath: $.errorInfo
+    #       Next: NotifyError
 
     DeleteDBInst:
       Type: Task
