@@ -197,11 +197,15 @@ export const notifiyError = async (event, context) => {
     } = {},
   } = event;
 
-  if (error === 'PullRequestRejected') {
-    return;
-  }
-
   const executionURL = `https://console.aws.amazon.com/states/home?region=us-east-1#/executions/details/${executionId}`;
+
+  if (error === 'PullRequestRejected') {
+    return notify({
+      title: `${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} - CI/CD Pull Request Rejected Rollback Complete`,
+      text: `Pull Request was Rejected. ${executionId ? `\nThis CI/CD execution can be found at : ${executionURL}` : ''}`,
+      status: 'error',
+    });
+  }
 
   return notify({
     title: `${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} - CI/CD ${error || 'Unexpected Error!'}`,
