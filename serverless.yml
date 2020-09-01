@@ -206,7 +206,7 @@ functions:
 
   DldAndSaveSource:
     handler: src/bitbucket.downloadAndSaveSource
-    memorySize: 512
+    memorySize: 1024
     timeout: 30
     environment:
       bitbucketWorkspace: ${self:custom.bitbucket.workspace}

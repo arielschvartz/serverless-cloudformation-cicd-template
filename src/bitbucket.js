@@ -107,18 +107,18 @@ export const downloadAndSaveSource = async (event, context) => {
     });
     const output = fs.createWriteStream(filePath);
 
-    archive.directory(`/tmp/${name}`, false);
-    archive.on('error', (err) => reject(err));
+    output.on('close', resolve);
+    archive.on('error', reject);
     archive.on('warning', (err) => {
       if (err.code === 'ENOENT') {
-        console.log(err);
+        console.log('Warning Error', err);
       } else {
         reject(err);
       }
     });
-    archive.pipe(output);
 
-    output.on('close', () => resolve());
+    archive.pipe(output);
+    archive.directory(`/tmp/${name}`, false);    
     archive.finalize();
 
     console.log("FINALIZING ARCHIVE");
