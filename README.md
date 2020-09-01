@@ -23,6 +23,8 @@ plugins:
 
 The configuration of the plugin is done by defining a `custom: cicd` object in your `serverless.yml` with your specific configuration.
 
+Besides that, the plugin needs to use the deploymentBucket that your serverless project uses. For that to work, you need to manually define the deployment bucket name in the provider section!
+
 See the sections below for detailed descriptions of the settings.
 
 
@@ -31,6 +33,11 @@ PS2: The ${parent:service-name} is filled with your serverless project name!
 PS3: The ${region} is filled with the serverless region in which your serverless project is configured.
 
 ```yaml
+proivder:
+  ...
+  deploymentBucket:
+    name: MY_DEPLOYMENT_BUCKET_NAME #this is important for the plugin to resolve the deployment bucket name
+
 custom:
   cicd:
     # BITBUCKET VARIABLES
