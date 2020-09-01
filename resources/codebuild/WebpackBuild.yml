@@ -45,6 +45,6 @@ Resources:
       Source:
         Type: NO_SOURCE
         BuildSpec: |
-          ${fileToString:resources/buildspecs/webpackBuild.yml}
+          ${ymlToString:resources/buildspecs/webpackBuild.yml}
       ServiceRole: !GetAtt [CodebuildRole, Arn]
       TimeoutInMinutes: 30
