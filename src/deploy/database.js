@@ -40,7 +40,7 @@ export const checkMigrationsChecksumChanged = async (event, context) => {
   const name = 'sourceCode'
 
   execSync('rm -rf /tmp/*', { encoding: 'utf8', stdio: 'inherit' });
-  execSync(`cd /tmp && git clone https://x-token-auth:${bitbucketAccessToken}@bitbucket.org/${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} --branch ${branchName} --single-branch ${name}`, { encoding: 'utf8', stdio: 'inherit' });
+  execSync(`cd /tmp && git clone https://x-token-auth:${bitbucketAccessToken}@bitbucket.org/${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} --branch ${branchName} ${name}`, { encoding: 'utf8', stdio: 'inherit' });
   // IN THIS CASE SUBMODULES ARE NOT NEEDED SO DO NOT DOWNLOAD THEM
   // execSync(`
   //   cd /tmp/${name};
