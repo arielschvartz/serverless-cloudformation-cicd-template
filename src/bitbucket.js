@@ -61,7 +61,7 @@ export const openNewBranch = async (event, context) => {
       workspace: process.env.bitbucketWorkspace,
       repository: process.env.bitbucketRepository,
       pullRequestId: originalPullRequestId,
-      reason: 'Automatic Delcine from the CI/CD pipeline.',
+      reason: 'Automatic decline from the CI/CD pipeline.',
     })
 
     console.log("DECLINED ORIGINAL PULL REQUEST");

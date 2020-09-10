@@ -197,7 +197,7 @@ definition:
         - ErrorEquals:
             - DatabaseInstanceNotReadyError
           ResultPath: null
-          Next: WaitOldDBRenaming
+          Next: WaitNewDBRenaming
         - ErrorEquals:
             - States.ALL
           ResultPath: $.errorInfo
