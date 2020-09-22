@@ -49,7 +49,7 @@ Resources:
             Value: ${self:custom.build.targetDirProduction}
           - Name: SERVERLESS_VERSION
             Type: PLAINTEXT
-            Value: '1.59.0'
+            Value: ${self:custom.serverlessVersion}
           - Name: QA_ACCOUNT
             Type: PLAINTEXT
             Value: ${self:custom.qa.accountId}

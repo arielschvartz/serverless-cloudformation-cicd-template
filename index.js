@@ -39,6 +39,7 @@ const parameters = [
   'package-bucket-name',
   'source-bucket-name',
   'cloudformation-templates-backup-bucket-name',
+  'serverless-version',
   'serverless-enabled',
   'serverless-build-package-qa-command',
   'serverless-build-package-production-command',

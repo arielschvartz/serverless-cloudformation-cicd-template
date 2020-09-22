@@ -42,6 +42,8 @@ custom:
   production:
     accountId: ${opt:production-account-id}
 
+  serverlessVersion: ${opt:serverless-version, '1.78.1'}
+
   qa:
     stackName: ${parent:service-name}-cicd-roles
     stageName: ${opt:qa-stage-name, 'qa'}
