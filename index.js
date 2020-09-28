@@ -62,6 +62,7 @@ const parameters = [
   'migrate-database-command',
   'rds-database',
   'rds-domain',
+  'db-backup-same-on-instance',
   'hosted-zone',
   'hosted-zone-id',
   'validate-enabled',

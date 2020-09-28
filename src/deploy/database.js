@@ -1,6 +1,7 @@
 import AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { execSync } from 'child_process';
+import { Pool } from 'pg';
 
 import {
   getBitbucketAccessToken,
@@ -126,4 +127,76 @@ export const isSnapshotReady = async (event, context) => {
     console.log("CURRENT STATUS IS", status);
     throw new SnapshotNotReadyError();
   }
+}
+
+export const createDatabaseCopy = async (event, context) => {
+  const {
+    Payload: {
+      environment,
+      dbName,
+      secretId,
+    },
+  } = this.props;
+
+  const secretsmanager = new AWS.SecretsManager();
+  const {
+    SecretString,
+  } = await secretsmanager.getSecretValue({
+    SecretId: secretId,
+  }).promise();
+
+  ({
+    username,
+    password,
+    host,
+    port,
+  } = JSON.parse(SecretString));
+
+  const pool = new Pool({
+    user: username,
+    password,
+    host,
+    port,
+    database: dbName,
+    min: 0,
+    max: 1
+  });
+
+  const {
+    rows,
+  } = await pool.query({
+    text: `
+      SELECT datname FROM pg_database WHERE datname = $1;
+    `,
+    values: [dbName],
+  });
+
+  if (rows.length < 1) {
+    throw new Error(`Database with name '${dbName}' does not exist.`)
+  }
+
+  // DELETE ANY BACKUP IF IT EXISTS
+  await pool.query({
+    text: `
+      DROP DATABASE IF EXISTS "${dbName}-backup";
+    `,
+  });
+
+  // CLOSE ALL CONNECTIONS
+  await pool.query({
+    text: `
+      SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
+      WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
+    `,
+    values: [dbName]
+  })
+
+  // CREATE A COPY
+  await pool.query({
+    text: `
+      CREATE DATABASE "${dbName}-backup" 
+      WITH TEMPLATE "${dbName}"
+      OWNER "${username}";
+    `,
+  });
 }

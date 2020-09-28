@@ -91,6 +91,7 @@ export const pullRequestApproved = async (event, context) => {
         databaseOptions: {
           migrateEnabled: isTruthy(process.env.migrateEnabled),
           isRDS: isTruthy(process.env.isRDS),
+          sameInstanceDBBackup: isTruthy(process.env.sameInstanceDBBackup),
           migrationsChanged: false,
         },
         bitbucket: {

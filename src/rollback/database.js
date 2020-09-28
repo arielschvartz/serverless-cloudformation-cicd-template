@@ -1,6 +1,7 @@
 import AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { execSync } from 'child_process';
+import { Pool } from 'pg';
 
 import {
   assumeQARole,
@@ -279,4 +280,89 @@ export const deleteDBSnapshot = async (event, context) => {
   await rds.deleteDBSnapshot({
     DBSnapshotIdentifier: snapshotIdentifier,
   }).promise();
+}
+
+export const rollbackDatabaseCopy = async (event, context) => {
+  const {
+    Payload: {
+      environment,
+      dbName,
+      secretId,
+    },
+  } = this.props;
+
+  const secretsmanager = new AWS.SecretsManager();
+  const {
+    SecretString,
+  } = await secretsmanager.getSecretValue({
+    SecretId: secretId,
+  }).promise();
+
+  ({
+    username,
+    password,
+    host,
+    port,
+  } = JSON.parse(SecretString));
+
+  const pool = new Pool({
+    user: username,
+    password,
+    host,
+    port,
+    database: dbName,
+    min: 0,
+    max: 1
+  });
+
+  const {
+    rows: newDBsRows,
+  } = await pool.query({
+    text: `
+      SELECT datname FROM pg_database WHERE datname = $1;
+    `,
+    values: [dbName],
+  });
+
+  if (newDBsRows.length < 1) {
+    console.log('The new DB could not be found!');
+  }
+
+  const {
+    rows: backupDBsRows,
+  } = await pool.query({
+    text: `
+      SELECT datname FROM pg_database WHERE datname = $1;
+    `,
+    values: [`${dbName}-backup`],
+  });
+
+  if (backupDBsRows.length < 1) {
+    throw new Error(`Database backup with name '${dbName}-backup' does not exist.`);
+  }
+
+  // CLOSE ALL CONNECTIONS
+  await pool.query({
+    text: `
+      SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
+      WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
+    `,
+    values: [dbName],
+  });
+
+  if (newDBsRows.length > 0) {
+    // DELETE THE NEW DB
+    await pool.query({
+      text: `
+        DROP DATABASE IF EXISTS "${dbName}";
+      `,
+    });
+  }
+
+  // RENAME THE BACKUP BACK
+  await pool.query({
+    text: `
+      ALTER DATABASE "${dbName}-backup" RENAME TO "${dbName}";
+    `,
+  });
 }

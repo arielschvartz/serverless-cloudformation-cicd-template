@@ -193,6 +193,7 @@ definition:
           hostedZoneId.$: $.packages.qa.serverless.hostedZoneId
           snapshotIdentifier.$: $.deployQA.Payload.snapshotIdentifier
           databaseOptions.$: $.databaseOptions
+          packages.$: $.packages.qa
           taskToken.$: $$.Task.Token
           AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
       Catch:

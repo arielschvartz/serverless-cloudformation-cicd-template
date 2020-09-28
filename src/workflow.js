@@ -27,6 +27,8 @@ const getStackInfo = async ({ Location: location }) => {
           rdsIdentifier,
           hostedZoneId,
           rdsDomain,
+          dbName,
+          dbSecretId,
         } = {},
       } = {},
       provider: {
@@ -47,6 +49,8 @@ const getStackInfo = async ({ Location: location }) => {
     rdsIdentifier: rdsIdentifier || false,
     hostedZoneId: hostedZoneId || false,
     rdsDomain: rdsDomain || false,
+    dbName,
+    dbSecretId,
   }
 }
 

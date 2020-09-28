@@ -6,6 +6,15 @@ States:
       - And:
         - Variable: $.databaseOptions.migrationsChanged
           BooleanEquals: true
+        - Variable: $.databaseOptions.sameInstanceDBBackup
+          BooleanEquals: true
+        - Not:
+            Variable: $.environment
+            StringEquals: production
+        Next: CreateDatabaseCopy
+      - And:
+        - Variable: $.databaseOptions.migrationsChanged
+          BooleanEquals: true
         - Variable: $.databaseOptions.isRDS
           BooleanEquals: true
         Next: TakeRDSSnapshot
@@ -13,6 +22,8 @@ States:
         - Variable: $.databaseOptions.migrationsChanged
           BooleanEquals: true
         - Variable: $.databaseOptions.isRDS
+          BooleanEquals: false
+        - Variable: $.databaseOptions.sameInstanceDBBackup
           BooleanEquals: false
         Next: MigrateDatabase
     Default: SetDatabaseSnapshotToNull
@@ -46,6 +57,31 @@ States:
           - SnapshotNotReadyError
         ResultPath: null
         Next: WaitCreateSnapshot
+    Next: MigrateDatabase
+
+  CreateDatabaseCopy:
+    Type: Task
+    Resource: !GetAtt [CreateDatabaseCopyLambdaFunction, Arn]
+    ResultPath: null
+    Parameters:
+      Payload:
+        environment.$: $.environment
+        dbName.$: $.packages.serverless.dbName
+        secretId.$: $.packages.serverless.dbSecretId
+    Retry:
+      - ErrorEquals:
+          - Lambda.ServiceException
+          - Lambda.AWSLambdaException
+          - Lambda.SdkClientException
+          - Lambda.Unknown
+        IntervalSeconds: 2
+        MaxAttempts: 6
+        BackoffRate: 2
+    # Catch:
+    #   - ErrorEquals:
+    #       - States.ALL
+    #     ResultPath: $.errorInfo
+    #     Next: NotifyError
     Next: MigrateDatabase
 
   MigrateDatabase:

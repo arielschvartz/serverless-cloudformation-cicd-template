@@ -124,6 +124,7 @@ custom:
     install: ${opt:pre-migrate-command, "echo 'install'"}
     command: ${opt:migrate-database-command, "echo 'migrate'"}
     isRDS: ${strToBool(${opt:rds-database, 'true'})}
+    sameInstanceDBBackup: ${strToBool(${opt:db-backup-same-on-instance}, 'false')}
 
   domain:
     dbDomain: ${opt:rds-domain, 'false'}}
@@ -165,6 +166,7 @@ functions:
       syncS3Enabled: ${self:custom.syncS3.enabled}
       migrateEnabled: ${self:custom.migrate.enabled}
       isRDS: ${self:custom.migrate.isRDS}
+      sameInstanceDBBackup: ${self:custom.migrate.sameInstanceDBBackup}
       branchPrefix: ${self:custom.bitbucket.branchPrefix}
       dbDomain: ${self:custom.domain.dbDomain}
     iamRoleStatementsName: ${parent:service-name}-pr-approved
@@ -688,6 +690,26 @@ functions:
               - !Ref AWS::AccountId
               - snapshot
               - '*'
+
+  CreateDatabaseCopy:
+    handler: src/deploy/database.createDatabaseCopy
+    timeout: 60
+    iamRoleStatementsName: ${parent:service-name}-copy-local-db
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - secretsmanager:GetSecretValue
+        Resource: '*'
+
+  RollbackDatabaseCopy:
+    handler: src/rollback/database.rollbackDatabaseCopy
+    timeout: 60
+    iamRoleStatementsName: ${parent:service-name}-rollback-local-db
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - secretsmanager:GetSecretValue
+        Resource: '*'
 
   PRMergedOrDeclined:
     handler: src/bitbucketWebhooks.pullRequestMergedOrDeclined

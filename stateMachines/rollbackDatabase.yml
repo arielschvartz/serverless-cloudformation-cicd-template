@@ -9,11 +9,17 @@ definition:
     HasSnapshot:
       Type: Choice
       Choices:
+        - And:
+          - Variable: $.databaseOptions.migrationsChanged
+            BooleanEquals: true
+          - Variable: $.databaseOptions.sameInstanceDBBackup
+            BooleanEquals: true
+          - Not:
+              Variable: $.environment
+              StringEquals: production
+          Next: RollbackDatabaseCopy
         - Variable: $.databaseOptions.isRDS
           BooleanEquals: false
-          Next: NotifySuccess
-        - Variable: $.dbDomain
-          StringEquals: 'false'
           Next: NotifySuccess
         - Variable: $.hostedZoneId
           BooleanEquals: false
@@ -203,32 +209,6 @@ definition:
           ResultPath: $.errorInfo
           Next: NotifyError
 
-    # UpdateDatabaseCNAME:
-    #   Type: Task
-    #   Resource: !GetAtt [UpdateDatabaseCNAMELambdaFunction, Arn]
-    #   Next: DeleteDBInst
-    #   ResultPath: null
-    #   Parameters:
-    #     Payload:
-    #       environment.$: $.environment
-    #       databaseURL.$: $.databaseURL
-    #       dbDomain.$: $.dbDomain
-    #       hostedZoneId.$: $.hostedZoneId
-    #   Retry:
-    #     - ErrorEquals:
-    #         - Lambda.ServiceException
-    #         - Lambda.AWSLambdaException
-    #         - Lambda.SdkClientException
-    #         - Lambda.Unknown
-    #       IntervalSeconds: 2
-    #       MaxAttempts: 6
-    #       BackoffRate: 2
-    #   Catch:
-    #     - ErrorEquals:
-    #         - States.ALL
-    #       ResultPath: $.errorInfo
-    #       Next: NotifyError
-
     DeleteDBInst:
       Type: Task
       Resource: !GetAtt [DeleteDBInstLambdaFunction, Arn]
@@ -309,6 +289,31 @@ definition:
             - States.ALL
           ResultPath: $.errorInfo
           Next: NotifyError
+
+    RollbackDatabaseCopy:
+      Type: Task
+      Resource: !GetAtt [RollbackDatabaseCopyLambdaFunction, Arn]
+       ResultPath: null
+      Parameters:
+        Payload:
+          environment.$: $.environment
+          dbName.$: $.packages.serverless.dbName
+          secretId.$: $.packages.serverless.dbSecretId
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.Unknown
+          IntervalSeconds: 2
+          MaxAttempts: 6
+          BackoffRate: 2
+      Catch:
+        - ErrorEquals:
+            - States.ALL
+          ResultPath: $.errorInfo
+          Next: NotifyError
+      Next: NotifySuccess
 
     NotifySuccess:
       Type: Task
