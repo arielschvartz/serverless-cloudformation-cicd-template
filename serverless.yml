@@ -124,7 +124,7 @@ custom:
     install: ${opt:pre-migrate-command, "echo 'install'"}
     command: ${opt:migrate-database-command, "echo 'migrate'"}
     isRDS: ${strToBool(${opt:rds-database, 'true'})}
-    sameInstanceDBBackup: ${strToBool(${opt:db-backup-same-on-instance}, 'false')}
+    sameInstanceDBBackup: ${strToBool(${opt:same-instance-db-backup, 'false'})}
 
   domain:
     dbDomain: ${opt:rds-domain, 'false'}}

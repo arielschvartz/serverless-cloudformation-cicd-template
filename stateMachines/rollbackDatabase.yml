@@ -293,7 +293,7 @@ definition:
     RollbackDatabaseCopy:
       Type: Task
       Resource: !GetAtt [RollbackDatabaseCopyLambdaFunction, Arn]
-       ResultPath: null
+      ResultPath: null
       Parameters:
         Payload:
           environment.$: $.environment
