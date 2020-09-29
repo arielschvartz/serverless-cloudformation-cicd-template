@@ -702,6 +702,9 @@ functions:
         Action:
           - secretsmanager:GetSecretValue
         Resource: '*'
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
 
   RollbackDatabaseCopy:
     handler: src/rollback/database.rollbackDatabaseCopy
@@ -714,6 +717,9 @@ functions:
         Action:
           - secretsmanager:GetSecretValue
         Resource: '*'
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.qa.roleArn}
 
   PRMergedOrDeclined:
     handler: src/bitbucketWebhooks.pullRequestMergedOrDeclined
