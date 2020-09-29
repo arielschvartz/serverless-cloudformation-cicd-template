@@ -694,6 +694,8 @@ functions:
   CreateDatabaseCopy:
     handler: src/deploy/database.createDatabaseCopy
     timeout: 60
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
     iamRoleStatementsName: ${parent:service-name}-copy-local-db
     iamRoleStatements:
       - Effect: Allow
@@ -704,6 +706,8 @@ functions:
   RollbackDatabaseCopy:
     handler: src/rollback/database.rollbackDatabaseCopy
     timeout: 60
+    environment:
+      QA_ROLE_ARN: ${self:custom.qa.roleArn}
     iamRoleStatementsName: ${parent:service-name}-rollback-local-db
     iamRoleStatements:
       - Effect: Allow
