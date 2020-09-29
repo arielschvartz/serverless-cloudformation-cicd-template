@@ -81,6 +81,24 @@ const getRDSInstance = async (event) => {
   return new AWS.RDS(opts);
 }
 
+const getSecretsManagerInstance = async (event) => {
+  const {
+    Payload: {
+      environment,
+    },
+  } = event;
+
+  let opts = {
+    apiVersion: '2017-10-17',
+  };
+
+  if (environment === 'qa') {
+    Object.assign(opts, { credentials: await assumeQARole() });
+  }
+
+  return new AWS.SecretsManager(opts);
+}
+
 export const takeRDSSnapshot = async (event, context) => {
   const {
     Payload: {
@@ -138,7 +156,7 @@ export const createDatabaseCopy = async (event, context) => {
     },
   } = event;
 
-  const secretsmanager = new AWS.SecretsManager();
+  const secretsmanager = await getSecretsManagerInstance(event);
   const {
     SecretString,
   } = await secretsmanager.getSecretValue({
