@@ -136,7 +136,7 @@ export const createDatabaseCopy = async (event, context) => {
       dbName,
       secretId,
     },
-  } = this.props;
+  } = event;
 
   const secretsmanager = new AWS.SecretsManager();
   const {

@@ -289,7 +289,7 @@ export const rollbackDatabaseCopy = async (event, context) => {
       dbName,
       secretId,
     },
-  } = this.props;
+  } = event;
 
   const secretsmanager = new AWS.SecretsManager();
   const {
