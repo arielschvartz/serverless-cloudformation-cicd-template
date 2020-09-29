@@ -38,6 +38,7 @@ Resources:
 
               - !GetAtt [TakeRDSSnapshotLambdaFunction, Arn]
               - !GetAtt [IsSnapshotReadyLambdaFunction, Arn]
+              - !GetAtt [CreateDatabaseCopyLambdaFunction, Arn]
           - Effect: Allow
             Action:
               - codebuild:StartBuild

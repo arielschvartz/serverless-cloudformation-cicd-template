@@ -37,3 +37,4 @@ Resources:
               - !GetAtt [DeleteDBSnapLambdaFunction, Arn]
               - !GetAtt [NotifySuccessToSFLambdaFunction, Arn]
               - !GetAtt [NotifyFailToSFLambdaFunction, Arn]
+              - !GetAtt [RollbackDatabaseCopyLambdaFunction, Arn]
