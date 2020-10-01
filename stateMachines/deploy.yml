@@ -217,10 +217,7 @@ definition:
     NotifySuccess:
       Type: Task
       Resource: !GetAtt [NotifySuccessToSFLambdaFunction, Arn]
-      Parameters:
-        Payload:
-          taskToken.$: $[0].taskToken
-          snapshotIdentifier.$: $[0].snapshotIdentifier
+      InputPath: $[0]
       Retry:
         - ErrorEquals:
             - Lambda.ServiceException

@@ -235,13 +235,14 @@ export const notifyFailToSF = async (event, context) => {
 
 export const notifySuccessToSF = async (event, context) => {
   const {
-    Payload: {
-      taskToken,
-    }
+    taskToken,
+    snapshotIdentifier = false,
   } = event;
 
   await stepfunctions.sendTaskSuccess({
     taskToken,
-    output: JSON.stringify(event),
+    output: JSON.stringify({
+      snapshotIdentifier,
+    }),
   }).promise();
 }

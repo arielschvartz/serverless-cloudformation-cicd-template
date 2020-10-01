@@ -191,7 +191,7 @@ definition:
           rdsIdentifier.$: $.packages.qa.serverless.rdsIdentifier
           dbDomain.$: $.packages.qa.serverless.rdsDomain
           hostedZoneId.$: $.packages.qa.serverless.hostedZoneId
-          snapshotIdentifier.$: $.deployQA.Payload.snapshotIdentifier
+          snapshotIdentifier.$: $.deployQA.snapshotIdentifier
           databaseOptions.$: $.databaseOptions
           packages.$: $.packages.qa
           taskToken.$: $$.Task.Token
