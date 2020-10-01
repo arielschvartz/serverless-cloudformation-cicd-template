@@ -163,12 +163,12 @@ export const createDatabaseCopy = async (event, context) => {
     SecretId: secretId,
   }).promise();
 
-  ({
+  const {
     username,
     password,
     host,
     port,
-  } = JSON.parse(SecretString));
+  } = JSON.parse(SecretString);
 
   const pool = new Pool({
     user: username,
