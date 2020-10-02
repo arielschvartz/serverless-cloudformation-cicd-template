@@ -11,75 +11,75 @@ const stepfunctions = new AWS.StepFunctions({ apiVersion: '2016-11-23' });
 export const pullRequestApproved = async (event, context) => {
   const body = JSON.parse(event.body);
 
-  const {
-    approval: {
-      user: {
-        display_name: approvalAuthorDisplayName,
-        nickname: approvalAuthorNickname,
-      },
-    },
-    pullrequest: {
-      id: pullRequestId,
-      title,
-      description,
-      destination: {
-        repository: {
-          name: destinationRepositoryName,
-          full_name: destinationRepositoryFullName,
+  try {
+    const {
+      approval: {
+        user: {
+          display_name: approvalAuthorDisplayName,
+          nickname: approvalAuthorNickname,
         },
-        branch: {
-          name: destinationBranchName,
-        }
       },
-      source: {
-        repository: {
-          name: sourceRepositoryName,
-          full_name: sourceRepositoryFullName,
+      pullrequest: {
+        id: pullRequestId,
+        title,
+        description,
+        destination: {
+          repository: {
+            name: destinationRepositoryName,
+            full_name: destinationRepositoryFullName,
+          },
+          branch: {
+            name: destinationBranchName,
+          }
         },
-        branch: {
-          name: sourceBranchName,
+        source: {
+          repository: {
+            name: sourceRepositoryName,
+            full_name: sourceRepositoryFullName,
+          },
+          branch: {
+            name: sourceBranchName,
+          }
+        },
+        created_on: createdAt,
+        author: {
+          display_name: authorDisplayName,
+          nickname: authorNickname,
         }
-      },
-      created_on: createdAt,
-      author: {
-        display_name: authorDisplayName,
-        nickname: authorNickname,
+      }
+    } = body;
+
+    // CHECK IF IS APPROVED FROM A BRANCH TO THE DESTINATION BRANCH AND IS NOT A TEMPORARY BRANCH CREATED BY THE PIPELINE
+    if (
+      (destinationBranchName !== process.env.destinationBranchName)
+      || (sourceBranchName.startsWith(process.env.branchPrefix))
+    ) {
+      return {
+        statusCode: 200,
+        body: 'CI/CD did not start. If it should have started, check if you are opening the PR from and to the right branches',
       }
     }
-  } = body;
 
-  // CHECK IF IS APPROVED FROM A BRANCH TO THE DESTINATION BRANCH AND IS NOT A TEMPORARY BRANCH CREATED BY THE PIPELINE
-  if (
-    (destinationBranchName !== process.env.destinationBranchName)
-    || (sourceBranchName.startsWith(process.env.branchPrefix))
-  ) {
-    return {
-      status: 200,
-      body: 'CI/CD did not start. If it should have started, check if you are opening the PR from and to the right branches',
+    const {
+      executions = [],
+    } = await stepfunctions.listExecutions({
+      stateMachineArn: process.env.stateMachineArn,
+      statusFilter: "RUNNING",
+    }).promise();
+
+    if (executions.length > 0) {
+      await notify({
+        title: `${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} - CI/CD did not start!`,
+        text: `There is already executions running for this CI/CD pipeline.`,
+        status: 'error',
+      });
+
+      return {
+        statusCode: 200,
+        body: 'CI/CD did not start because there is already an execution running.'
+      }
     }
-  }
 
-  const {
-    executions = [],
-  } = await stepfunctions.listExecutions({
-    stateMachineArn: process.env.stateMachineArn,
-    statusFilter: "RUNNING",
-  }).promise();
-
-  if (executions.length > 0) {
-    await notify({
-      title: `${process.env.bitbucketWorkspace}/${process.env.bitbucketRepository} - CI/CD did not start!`,
-      text: `There is already executions running for this CI/CD pipeline.`,
-      status: 'error',
-    });
-
-    return {
-      status: 200,
-      body: 'CI/CD did not start because there is already an execution running.'
-    }
-  }
-
-  try {
     await stepfunctions.startExecution({
       stateMachineArn: process.env.stateMachineArn,
       input: JSON.stringify({
@@ -125,16 +125,18 @@ export const pullRequestApproved = async (event, context) => {
           },
         },
       }),
-      name: `${sourceBranchName.substring(0, 40)}-${uuidv4()}`,
+      name: `${sourceBranchName.replace(/\//g, '-').substring(0, 40)}-${uuidv4()}`,
     }).promise();
 
     return {
-      status: 200,
+      statusCode: 200,
       body: 'CI/CD Workflow successfully started.',
     }
   } catch (error) {
+    console.log('ERROR', error);
+
     return {
-      status: 500,
+      statusCode: 500,
       body: `CI/CD Workflow did not start. ${error}`,
     }
   }
