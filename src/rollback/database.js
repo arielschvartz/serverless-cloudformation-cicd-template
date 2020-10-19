@@ -323,7 +323,7 @@ export const rollbackDatabaseCopy = async (event, context) => {
     port,
   } = JSON.parse(SecretString);
 
-  let pool = new Pool({
+  const pool = new Pool({
     user: username,
     password,
     host,
@@ -392,7 +392,7 @@ export const rollbackDatabaseCopy = async (event, context) => {
   }
 
   // CREATE NEW POOL TO RECONNECT
-  let pool = new Pool({
+  const newPool = new Pool({
     user: username,
     password,
     host,
@@ -402,7 +402,7 @@ export const rollbackDatabaseCopy = async (event, context) => {
     max: 1
   });
 
-  await pool.query({
+  await newPool.query({
     text: `
       DROP DATABASE IF EXISTS "${dropmeName}";
     `,
