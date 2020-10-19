@@ -370,19 +370,19 @@ export const rollbackDatabaseCopy = async (event, context) => {
 
   const dropmeName = `${dbName}-dropme-${uuidv4()}`;
 
-  const backupPool = new Pool({
+  const postgresPool = new Pool({
     user: username,
     password,
     host,
     port,
-    database: `${dbName}-backup`,
+    database: 'postgres',
     min: 0,
     max: 1
   });
 
   if (newDBsRows.length > 0) {
     // CLOSE ALL CONNECTIONS
-    await backupPool.query({
+    await postgresPool.query({
       text: `
         SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
         WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
@@ -391,25 +391,15 @@ export const rollbackDatabaseCopy = async (event, context) => {
     });
 
     // RENAME THE NEW DB
-    await backupPool.query({
+    await postgresPool.query({
       text: `
         ALTER DATABASE "${dbName}" RENAME TO "${dropmeName}";
       `,
     });
   }
 
-  const dropmePool = new Pool({
-    user: username,
-    password,
-    host,
-    port,
-    database: dropmeName,
-    min: 0,
-    max: 1
-  });
-
   // CLOSE ALL CONNECTIONS
-  await dropmeName.query({
+  await postgresPool.query({
     text: `
       SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
       WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
@@ -417,24 +407,14 @@ export const rollbackDatabaseCopy = async (event, context) => {
     values: [`${dbName}-backup`],
   });
 
-  await dropmePool.query({
+  await postgresPool.query({
     text: `
       ALTER DATABASE "${dbName}-backup" RENAME TO "${dbName}";
     `,
   });
 
-  const finalPool = new Pool({
-    user: username,
-    password,
-    host,
-    port,
-    database: dropmeName,
-    min: 0,
-    max: 1
-  });
-
   // CLOSE ALL CONNECTIONS
-  await finalPool.query({
+  await postgresPool.query({
     text: `
       SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
       WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
@@ -442,7 +422,7 @@ export const rollbackDatabaseCopy = async (event, context) => {
     values: [dropmeName],
   });
 
-  await finalPool.query({
+  await postgresPool.query({
     text: `
       DROP DATABASE IF EXISTS "${dropmeName}";
     `,
