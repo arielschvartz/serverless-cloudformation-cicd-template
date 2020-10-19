@@ -234,10 +234,19 @@ export const notifyFailToSF = async (event, context) => {
 }
 
 export const notifySuccessToSF = async (event, context) => {
-  const {
+  let {
     taskToken,
     snapshotIdentifier = false,
   } = event;
+
+  if (!taskToken) {
+    ({
+      Payload: {
+        taskToken,
+        snapshotIdentifier = false,
+      } = event;
+    });
+  }
 
   await stepfunctions.sendTaskSuccess({
     taskToken,
