@@ -381,7 +381,16 @@ export const rollbackDatabaseCopy = async (event, context) => {
   });
 
   if (newDBsRows.length > 0) {
-    // DELETE THE NEW DB
+    // CLOSE ALL CONNECTIONS
+    await backupPool.query({
+      text: `
+        SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
+        WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
+      `,
+      values: [dbName],
+    });
+
+    // RENAME THE NEW DB
     await backupPool.query({
       text: `
         ALTER DATABASE "${dbName}" RENAME TO "${dropmeName}";
@@ -399,6 +408,15 @@ export const rollbackDatabaseCopy = async (event, context) => {
     max: 1
   });
 
+  // CLOSE ALL CONNECTIONS
+  await dropmeName.query({
+    text: `
+      SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
+      WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
+    `,
+    values: [`${dbName}-backup`],
+  });
+
   await dropmePool.query({
     text: `
       ALTER DATABASE "${dbName}-backup" RENAME TO "${dbName}";
@@ -413,6 +431,15 @@ export const rollbackDatabaseCopy = async (event, context) => {
     database: dropmeName,
     min: 0,
     max: 1
+  });
+
+  // CLOSE ALL CONNECTIONS
+  await finalPool.query({
+    text: `
+      SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
+      WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
+    `,
+    values: [dropmeName],
   });
 
   await finalPool.query({
