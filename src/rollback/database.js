@@ -323,7 +323,7 @@ export const rollbackDatabaseCopy = async (event, context) => {
     port,
   } = JSON.parse(SecretString);
 
-  const pool = new Pool({
+  let pool = new Pool({
     user: username,
     password,
     host,
@@ -368,19 +368,43 @@ export const rollbackDatabaseCopy = async (event, context) => {
     values: [dbName],
   });
 
-  if (newDBsRows.length > 0) {
-    // DELETE THE NEW DB
-    await pool.query({
+  const dropmeName = `${dbName}-dropme-${uuidv4()}`;
+  const client = await pool.connect();
+
+  try {
+    if (newDBsRows.length > 0) {
+      // DELETE THE NEW DB
+      await client.query({
+        text: `
+          ALTER DATABASE "${dbName}" RENAME TO "${dropmeName}";
+        `,
+      });
+    }
+
+    // RENAME THE BACKUP BACK
+    await client.query({
       text: `
-        DROP DATABASE IF EXISTS "${dbName}";
+        ALTER DATABASE "${dbName}-backup" RENAME TO "${dbName}";
       `,
     });
+  } finally {
+    await client.release();
   }
 
-  // RENAME THE BACKUP BACK
+  // CREATE NEW POOL TO RECONNECT
+  let pool = new Pool({
+    user: username,
+    password,
+    host,
+    port,
+    database: dbName,
+    min: 0,
+    max: 1
+  });
+
   await pool.query({
     text: `
-      ALTER DATABASE "${dbName}-backup" RENAME TO "${dbName}";
+      DROP DATABASE IF EXISTS "${dropmeName}";
     `,
   });
 }
