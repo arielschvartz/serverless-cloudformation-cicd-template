@@ -156,6 +156,15 @@ export const updateCFTemplate = async (event, context) => {
   await fs.writeFileSync(`${extractFolder}.zip`, file);
   await extract(`${extractFolder}.zip`, { dir: extractFolder });
 
+  const templateBody = fs.readFileSync(`${extractFolder}/cloudformation-template-update-stack.json`, 'utf8');
+  const templateKey = `${key.split("/").slice(0, -1).join("/")}/template.json`;
+
+  await s3.putObject({
+    Body: templateBody,
+    Bucket: bucketName,
+    Key: templateKey,
+  }).promise();
+
   const cloudformation = await getCFInstance(event);
   await cloudformation.updateStack({
     StackName: stackName,
@@ -165,7 +174,7 @@ export const updateCFTemplate = async (event, context) => {
       'CAPABILITY_AUTO_EXPAND',
     ],
     RoleARN: roleArn,
-    TemplateBody: fs.readFileSync(`${extractFolder}/cloudformation-template-update-stack.json`, 'utf8')
+    TemplateURL: `https://${bucketName}.s3.amazonaws.com/${templateKey}`
   }).promise();
 }
 

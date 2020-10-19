@@ -403,6 +403,7 @@ functions:
         Action:
           - s3:GetObject
           - s3:ListBucket
+          - s3:PutObject
         Resource:
           - !GetAtt [PackageBucket, Arn]
           - Fn::Join:
