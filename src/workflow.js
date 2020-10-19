@@ -244,8 +244,8 @@ export const notifySuccessToSF = async (event, context) => {
       Payload: {
         taskToken,
         snapshotIdentifier = false,
-      } = event;
-    });
+      },
+    } = event);
   }
 
   await stepfunctions.sendTaskSuccess({
