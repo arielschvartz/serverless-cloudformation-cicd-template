@@ -359,18 +359,10 @@ export const rollbackDatabaseCopy = async (event, context) => {
     throw new Error(`Database backup with name '${dbName}-backup' does not exist.`);
   }
 
-  // CLOSE ALL CONNECTIONS
-  await pool.query({
-    text: `
-      SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
-      WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
-    `,
-    values: [dbName],
-  });
-
   const dropmeName = `${dbName}-dropme-${uuidv4()}`;
+  console.log({ dropmeName });
 
-  const postgresPool = new Pool({
+  let postgresPool = new Pool({
     user: username,
     password,
     host,
@@ -380,8 +372,10 @@ export const rollbackDatabaseCopy = async (event, context) => {
     max: 1
   });
 
+  console.log({ newDBsRows });
   if (newDBsRows.length > 0) {
     // CLOSE ALL CONNECTIONS
+    console.log('DROPPING CONNECTIONS FROM ACTUAL DB');
     await postgresPool.query({
       text: `
         SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
@@ -390,15 +384,18 @@ export const rollbackDatabaseCopy = async (event, context) => {
       values: [dbName],
     });
 
+    console.log('DROPPED CONNECTIONS');
     // RENAME THE NEW DB
     await postgresPool.query({
       text: `
         ALTER DATABASE "${dbName}" RENAME TO "${dropmeName}";
       `,
     });
+    console.log('RENAMED TO DROP ME');
   }
 
   // CLOSE ALL CONNECTIONS
+  console.log('DROPPING CONNECTIONS FROM BACKUP');
   await postgresPool.query({
     text: `
       SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
@@ -407,13 +404,16 @@ export const rollbackDatabaseCopy = async (event, context) => {
     values: [`${dbName}-backup`],
   });
 
+  console.log('DROPPED CONNECTIONS');
   await postgresPool.query({
     text: `
       ALTER DATABASE "${dbName}-backup" RENAME TO "${dbName}";
     `,
   });
+  console.log('RENAMED BACKUP');
 
   // CLOSE ALL CONNECTIONS
+  console.log('DROPPING CONNECTIONS FROM DROPME');
   await postgresPool.query({
     text: `
       SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
@@ -421,10 +421,12 @@ export const rollbackDatabaseCopy = async (event, context) => {
     `,
     values: [dropmeName],
   });
+  console.log('DROPPED CONNECTIONS');
 
   await postgresPool.query({
     text: `
       DROP DATABASE IF EXISTS "${dropmeName}";
     `,
   });
+  console.log('DROPPED DB');
 }
