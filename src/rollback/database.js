@@ -386,13 +386,28 @@ export const rollbackDatabaseCopy = async (event, context) => {
 
     console.log('DROPPED CONNECTIONS');
     // RENAME THE NEW DB
-    await postgresPool.query({
-      text: `
-        ALTER DATABASE "${dbName}" RENAME TO "${dropmeName}";
-      `,
-    });
+    try {
+      await postgresPool.query({
+        text: `
+          ALTER DATABASE "${dbName}" RENAME TO "${dropmeName}";
+        `,
+      });
+    } catch (error) {
+      console.log('Error changing database name do dropme', error);
+    }
     console.log('RENAMED TO DROP ME');
   }
+
+  // Recreate Pool in case got disconnected
+  postgresPool = new Pool({
+    user: username,
+    password,
+    host,
+    port,
+    database: 'postgres',
+    min: 0,
+    max: 1
+  });
 
   // CLOSE ALL CONNECTIONS
   console.log('DROPPING CONNECTIONS FROM BACKUP');
@@ -405,12 +420,27 @@ export const rollbackDatabaseCopy = async (event, context) => {
   });
 
   console.log('DROPPED CONNECTIONS');
-  await postgresPool.query({
-    text: `
-      ALTER DATABASE "${dbName}-backup" RENAME TO "${dbName}";
-    `,
-  });
+  try {
+    await postgresPool.query({
+      text: `
+        ALTER DATABASE "${dbName}-backup" RENAME TO "${dbName}";
+      `,
+    });
+  } catch (error) {
+    console.log('Error changing backup database name do database', error);
+  }
   console.log('RENAMED BACKUP');
+
+  // Recreate Pool in case got disconnected
+  postgresPool = new Pool({
+    user: username,
+    password,
+    host,
+    port,
+    database: 'postgres',
+    min: 0,
+    max: 1
+  });
 
   // CLOSE ALL CONNECTIONS
   console.log('DROPPING CONNECTIONS FROM DROPME');
@@ -423,10 +453,14 @@ export const rollbackDatabaseCopy = async (event, context) => {
   });
   console.log('DROPPED CONNECTIONS');
 
-  await postgresPool.query({
-    text: `
-      DROP DATABASE IF EXISTS "${dropmeName}";
-    `,
-  });
+  try {
+    await postgresPool.query({
+      text: `
+        DROP DATABASE IF EXISTS "${dropmeName}";
+      `,
+    });
+  } catch (error) {
+    console.log('Error droping dropme database', error);
+  }
   console.log('DROPPED DB');
 }
