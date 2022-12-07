@@ -24,7 +24,7 @@
     "pg": "^8.3.3",
     "pg-native": "^3.0.0",
     "query-string": "^6.12.1",
-    "serverless": "^1.59.0",
+    "serverless": "^3.25.1",
     "serverless-create-custom-deployment-bucket": "^1.0.0",
     "serverless-iam-roles-per-function": "^2.0.2",
     "serverless-pseudo-parameters": "^2.5.0",
